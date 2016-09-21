@@ -1,5 +1,5 @@
 <?php # -*- coding: utf-8 -*-
-/**
+/*
  * Plugin Name: MultilingualPress
  * Plugin URI:  https://wordpress.org/plugins/multilingual-press/
  * Description: Create a fast translation network on WordPress multisite. Run each language in a separate site, and connect the content in a lightweight user interface. Use a customizable widget to link to all sites.
@@ -12,6 +12,8 @@
  * Network:     true
  */
 
+namespace Inpsyde\MultilingualPress;
+
 use Inpsyde\MultilingualPress\Common\Type\SemanticVersionNumber;
 
 defined( 'ABSPATH' ) or die();
@@ -23,12 +25,8 @@ if ( file_exists( __DIR__ . '/vendor/autoload.php' ) ) {
 	require_once __DIR__ . '/vendor/autoload.php';
 }
 
-if ( ! class_exists( 'Multilingual_Press' ) ) {
-	require plugin_dir_path( __FILE__ ) . 'src/inc/Multilingual_Press.php';
-}
-
 // Kick-Off
-add_action( 'plugins_loaded', 'mlp_init', 0 );
+add_action( 'plugins_loaded', __NAMESPACE__ . '\\init', 0 );
 
 /**
  * Initialize the plugin.
@@ -37,114 +35,114 @@ add_action( 'plugins_loaded', 'mlp_init', 0 );
  *
  * @return void
  */
-function mlp_init() {
-
-	global $pagenow, $wp_version, $wpdb;
-
-	$plugin_path = plugin_dir_path( __FILE__ );
-	$plugin_url = plugins_url( '/', __FILE__ );
-
-	$assets_base = 'assets';
+function init() {
 
 	if ( ! class_exists( 'Mlp_Load_Controller' ) ) {
-		require $plugin_path . 'src/inc/autoload/Mlp_Load_Controller.php';
+		require __DIR__ . '/src/inc/autoload/Mlp_Load_Controller.php';
 	}
 
-	$loader = new Mlp_Load_Controller( $plugin_path . 'src/inc' );
+	$properties = new Core\Properties( $this->plugin_file_path );
+	$properties->lock();
 
-	$data = new Mlp_Plugin_Properties();
+	$container = new Service\Container();
+	$container->share( 'mlp.properties', $properties );
 
-	$data->set( 'loader',$loader->get_loader() );
+	$mlp = new MultilingualPress( $container );
+	$mlp
+		->add_service_provider( new Core\CoreServiceProvider() )
+		->add_service_provider( new Assets\ServiceProvider() )
+		->add_service_provider( new API\ServiceProvider() )
+		->add_service_provider( new Core\FeaturesServiceProvider() )
+		->add_service_provider( new Core\TranslationMetaboxServiceProvider() )
+		->add_service_provider( new Module\AlternativeLanguageTitleInAdminBar\ServiceProvider() )
+		->add_service_provider( new Module\Quicklinks\ServiceProvider() )
+		->add_service_provider( new Module\Redirect\ServiceProvider() )
+		->add_service_provider( new Module\Translation\ServiceProvider() )
+		->add_service_provider( new Module\PostTypeSupport\ServiceProvider() )
+		->add_service_provider( new Module\Trasher\ServiceProvider() )
+		->add_service_provider( new Module\UserAdminLanguage\ServiceProvider() );
 
-	$locations = new Mlp_Internal_Locations();
-	$locations->add_dir( $plugin_path, $plugin_url, 'plugin' );
-	$assets_locations = [
-		'css'    => 'css',
-		'js'     => 'js',
-		'images' => 'images',
-		'flags'  => 'images/flags',
-	];
-	foreach ( $assets_locations as $type => $dir ) {
-		$locations->add_dir(
-			$plugin_path . $assets_base . '/' . $dir,
-			$plugin_url . $assets_base . '/' . $dir,
-			$type
+	/**
+	 * Fires after core providers have been added.
+	 * Useful to add custom providers from extensions / plugins.
+	 *
+	 * @param MultilingualPress $mlp Plugin front controller.
+	 */
+	do_action( 'inpsyde_mlp_add_providers', $mlp );
+
+	/**
+	 * @var bool                          $check_ok
+	 * @var \Mlp_Site_Relations_Interface $site_relations
+	 */
+	list( $check_ok, $site_relations ) = pre_run_test( $properties );
+
+	if ( $check_ok && $site_relations instanceof \Mlp_Site_Relations_Interface ) {
+
+		$container->share( 'mlp.site_relations', $site_relations );
+
+		add_filter(
+			'inpsyde_mlp_container',
+			function () use ( $container ) {
+
+				return $container;
+			}
 		);
+
+		require_once __DIR__ . 'src/inc/functions.php';
+
+		$mlp->bootstrap();
 	}
-	$data->set( 'locations',$locations );
-
-	$data->set( 'plugin_file_path', __FILE__ );
-	$data->set( 'plugin_base_name', plugin_basename( __FILE__ ) );
-
-	$headers = get_file_data( __FILE__, [
-		'text_domain_path' => 'Domain Path',
-		'plugin_uri'       => 'Plugin URI',
-		'plugin_name'      => 'Plugin Name',
-		'version'          => 'Version',
-	] );
-	foreach ( $headers as $name => $value ) {
-		$data->set( $name, $value );
-	}
-
-	if ( ! mlp_pre_run_test( $pagenow, $data, $wp_version, $wpdb ) ) {
-		return;
-	}
-
-	$mlp = new Multilingual_Press( $data, $wpdb );
-	$mlp->setup();
 }
 
 /**
  * Check current state of the WordPress installation.
  *
- * @param  string                          $pagenow
- * @param  Inpsyde_Property_List_Interface $data
- * @param  string                          $wp_version
- * @param  wpdb                            $wpdb
+ * @param  Core\Properties $properties
  *
- * @return bool
+ * @return array
  */
-function mlp_pre_run_test( $pagenow, Inpsyde_Property_List_Interface $data, $wp_version, wpdb $wpdb ) {
+function pre_run_test( Core\Properties $properties ) {
 
-	$self_check = new Mlp_Self_Check( __FILE__, $pagenow );
+	global $pagenow, $wp_version, $wpdb;
+
+	$self_check         = new \Mlp_Self_Check( __FILE__, $pagenow );
 	$requirements_check = $self_check->pre_install_check(
-		$data->get( 'plugin_name' ),
-		$data->get( 'plugin_base_name' ),
+		$properties->plugin_name(),
+		$properties->plugin_base_name(),
 		$wp_version
 	);
 
-	if ( Mlp_Self_Check::PLUGIN_DEACTIVATED === $requirements_check ) {
-		return FALSE;
+	if ( \Mlp_Self_Check::PLUGIN_DEACTIVATED === $requirements_check ) {
+		return [ FALSE, NULL ];
 	}
 
-	$data->set( 'site_relations', new Mlp_Site_Relations( $wpdb, 'mlp_site_relations' ) );
+	$site_relations = new \Mlp_Site_Relations( $wpdb, 'mlp_site_relations' );
 
-	if ( Mlp_Self_Check::INSTALLATION_CONTEXT_OK === $requirements_check ) {
+	if ( \Mlp_Self_Check::INSTALLATION_CONTEXT_OK === $requirements_check ) {
 
-		$deactivator = new Mlp_Network_Plugin_Deactivation();
+		$deactivator = new \Mlp_Network_Plugin_Deactivation();
 
-		$last_version_option = get_site_option( 'mlp_version' );
-		$last_version = SemanticVersionNumber::create( $last_version_option );
-		$current_version = SemanticVersionNumber::create( $data->get( 'version' ) );
-		$upgrade_check = $self_check->is_current_version( $current_version, $last_version );
-		$updater = new Mlp_Update_Plugin_Data( $data, $wpdb, $current_version, $last_version );
+		$last_ver      = SemanticVersionNumber::create( get_site_option( 'mlp_version' ) );
+		$current_ver   = SemanticVersionNumber::create( $properties->version() );
+		$upgrade_check = $self_check->is_current_version( $current_ver, $last_ver );
+		$updater       = new \Mlp_Update_Plugin_Data( $properties, $site_relations, $current_ver, $last_ver );
 
-		if ( Mlp_Self_Check::NEEDS_INSTALLATION === $upgrade_check ) {
+		if ( \Mlp_Self_Check::NEEDS_INSTALLATION === $upgrade_check ) {
 			$updater->install_plugin();
 		}
 
-		if ( Mlp_Self_Check::NEEDS_UPGRADE === $upgrade_check ) {
+		if ( \Mlp_Self_Check::NEEDS_UPGRADE === $upgrade_check ) {
 			$updater->update( $deactivator );
 		}
 	}
 
-	return TRUE;
+	return [ TRUE, $site_relations ];
 }
 
 /**
  * Write debug data to the error log.
  *
- * Add the following linge to your `wp-config.php` to enable this function:
+ * Add the following line to your `wp-config.php` to enable this function:
  *
  *     const MULTILINGUALPRESS_DEBUG = TRUE;
  *
@@ -152,17 +150,15 @@ function mlp_pre_run_test( $pagenow, Inpsyde_Property_List_Interface $data, $wp_
  *
  * @return void
  */
-function mlp_debug( $message ) {
+function debug( $message ) {
 
 	if ( ! defined( 'MULTILINGUALPRESS_DEBUG' ) || ! MULTILINGUALPRESS_DEBUG ) {
-		return;
+		$date = date( 'H:m:s' );
+
+		error_log( "MultilingualPress: $date $message" );
 	}
-
-	$date = date( 'H:m:s' );
-
-	error_log( "MultilingualPress: $date $message" );
 }
 
 if ( defined( 'MULTILINGUALPRESS_DEBUG' ) && MULTILINGUALPRESS_DEBUG ) {
-	add_action( 'mlp_debug', 'mlp_debug' );
+	add_action( 'mlp_debug', __NAMESPACE__ . '\\debug' );
 }
