@@ -5,7 +5,6 @@ use Inpsyde\MultilingualPress\Common\Type\EscapedURL;
 use Inpsyde\MultilingualPress\Common\Type\FilterableTranslation;
 use Inpsyde\MultilingualPress\Common\Type\Translation;
 use Inpsyde\MultilingualPress\Common\Type\URL;
-use Inpsyde\MultilingualPress\Core\Properties;
 
 /**
  * Class Mlp_Language_Api
@@ -170,7 +169,7 @@ class Mlp_Language_Api implements Mlp_Language_Api_Interface {
 	 * @param  string         $iso       Something like de_AT
 	 *
 	 * @param string          $field     Optional. The field which should be queried. Defaults to 'native_name'.
-	 * @param string|string[] $fallbacks Optional. Falback language fields. Defaults to English and native name.
+	 * @param string|string[] $fallbacks Optional. Fallback language fields. Defaults to English and native name.
 	 *
 	 * @return string
 	 */
@@ -704,18 +703,19 @@ WHERE `http_name` IN( $values )";
 	private function prepare_translation_arguments( array $args ) {
 
 		$arguments = wp_parse_args(
-			$args, [
-				     // always greater than 0
-				     'site_id'          => get_current_blog_id(),
-				     // 0 if missing
-				     'content_id'       => $this->get_query_id(),
-				     'type'             => $this->get_request_type(),
-				     'strict'           => TRUE,
-				     'search_term'      => get_search_query(),
-				     'post_type'        => $this->get_request_post_type(),
-				     'include_base'     => FALSE,
-				     'suppress_filters' => FALSE,
-			     ]
+			$args,
+			[
+				// always greater than 0
+				'site_id'          => get_current_blog_id(),
+				// 0 if missing
+				'content_id'       => $this->get_query_id(),
+				'type'             => $this->get_request_type(),
+				'strict'           => TRUE,
+				'search_term'      => get_search_query(),
+				'post_type'        => $this->get_request_post_type(),
+				'include_base'     => FALSE,
+				'suppress_filters' => FALSE,
+			]
 		);
 
 		/**

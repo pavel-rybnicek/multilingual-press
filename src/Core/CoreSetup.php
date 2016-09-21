@@ -34,7 +34,7 @@ class CoreSetup {
 			1
 		);
 
-		// Fires
+		// Fires an action when both MLP and WP are loaded and site is active for MLP
 		add_action(
 			'wp_loaded',
 			function () {
@@ -91,6 +91,7 @@ class CoreSetup {
 
 	/**
 	 * @param Container $container
+	 * @param int       $blog_id
 	 */
 	private function delete_blog( Container $container, $blog_id ) {
 
@@ -115,12 +116,7 @@ class CoreSetup {
 	}
 
 	/**
-	 * Checks for errors
-	 *
-	 * @access    public
-	 * @since     0.9
-	 * @uses
-	 * @return    void
+	 * Checks for errors and displays an admin notice if any error happen.
 	 */
 	private function user_errors_admin_notice() {
 
@@ -132,7 +128,7 @@ class CoreSetup {
 			<p>
 				<?php
 				_e(
-					'You didn\'t setup any site relationships. You have to setup these first to use MultilingualPress. Please go to Network Admin &raquo; Sites &raquo; and choose a site to edit. Then go to the tab MultilingualPress and set up the relationships.',
+					'You did not setup any site relationships. You have to setup these first to use MultilingualPress. Please go to Network Admin &raquo; Sites &raquo; and choose a site to edit. Then go to the tab MultilingualPress and set up the relationships.',
 					'multilingual-press'
 				);
 				?>
@@ -207,17 +203,16 @@ class CoreSetup {
 	 */
 	private function load_module_settings_page( Container $container ) {
 
-		$settings = new \Mlp_General_Settingspage( $container[ 'mlp.module_manager' ], $container[ 'mlp.assets' ] );
+		$settings = new \Mlp_General_SettingsPage( $container[ 'mlp.module_manager' ], $container[ 'mlp.assets' ] );
 		add_action( 'plugins_loaded', [ $settings, 'setup' ], 8 );
 
 		/** @var Properties $properties */
-		$properties  = $container[ 'mlp.properties' ];
-		$plugin_file = $properties->plugin_base_name();
-		$url         = network_admin_url( 'settings.php?page=mlp' );
-		$action_link = new \Mlp_Network_Plugin_Action_Link(
-			[
-				'settings' => '<a href="' . esc_url( $url ) . '">' . __( 'Settings', 'multilingual-press' ) . '</a>',
-			]
+		$properties     = $container[ 'mlp.properties' ];
+		$plugin_file    = $properties->plugin_base_name();
+		$url            = network_admin_url( 'settings.php?page=mlp' );
+		$settings_label = esc_html__( 'Settings', 'multilingual-press' );
+		$action_link    = new \Mlp_Network_Plugin_Action_Link(
+			[ 'settings' => sprintf( '<a href="%s">%s</a>', esc_url( $url ), $settings_label ), ]
 		);
 
 		add_filter( "network_admin_plugin_action_links_{$plugin_file}", [ $action_link, 'add' ] );
@@ -230,7 +225,7 @@ class CoreSetup {
 	 */
 	private function load_site_settings_page( Container $container ) {
 
-		$settings = new \Mlp_General_Settingspage( $container[ 'mlp.module_manager' ], $container[ 'mlp.assets' ] );
+		$settings = new \Mlp_General_SettingsPage( $container[ 'mlp.module_manager' ], $container[ 'mlp.assets' ] );
 		$settings->setup();
 
 		add_action( 'plugins_loaded', [ $settings, 'setup' ], 8 );

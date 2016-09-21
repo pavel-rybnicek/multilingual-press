@@ -204,11 +204,12 @@ class Mlp_Update_Plugin_Data {
 			if ( empty ( $lang_id ) ) {
 				// @todo add custom name
 				$wpdb->insert(
-					$table, [
-						      'english_name' => $text,
-						      'wp_locale'    => $mlp_site[ 'lang' ],
-						      'http_name'    => str_replace( '_', '-', $mlp_site[ 'lang' ] ),
-					      ]
+					$table,
+					[
+						'english_name' => $text,
+						'wp_locale'    => $mlp_site[ 'lang' ],
+						'http_name'    => str_replace( '_', '-', $mlp_site[ 'lang' ] ),
+					]
 				);
 			} // language found -> change priority
 			else {

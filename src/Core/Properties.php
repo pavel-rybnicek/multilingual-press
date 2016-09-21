@@ -160,8 +160,6 @@ class Properties implements \ArrayAccess {
 	 * @param string $offset
 	 * @param mixed  $value
 	 *
-	 * @return mixed
-	 *
 	 * @throws \BadMethodCallException If either container is locked or property name is already used.
 	 */
 	public function offsetSet( $offset, $value ) {

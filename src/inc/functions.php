@@ -113,12 +113,12 @@ function get_available_languages( $not_related = FALSE ) {
 		return [];
 	}
 
-	/** @var \Mlp_Site_Relations $site_relations */
+	/** @var \Mlp_Site_Relations_Interface $site_relations */
 	$site_relations = MultilingualPress::resolve( 'mlp.site_relations' );
 
 	// Do we need related blogs only?
 	if ( FALSE === $not_related ) {
-		$related_blogs = $site_relations->get_related_sites( get_current_blog_id(), ! is_user_logged_in() );
+		$related_blogs = $site_relations->get_related_sites( get_current_blog_id() );
 
 		// No related blogs? Leave here.
 		if ( empty ( $related_blogs ) ) {

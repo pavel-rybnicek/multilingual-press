@@ -101,7 +101,7 @@ class Mlp_Translation_Metabox {
 		$current_blog_id = get_current_blog_id();
 
 		$site_relations = $this->site_relations;
-		$related_blogs  = $site_relations->get_related_sites( $current_blog_id, FALSE );
+		$related_blogs  = $site_relations->get_related_sites( $current_blog_id );
 
 		if ( empty( $related_blogs ) ) {
 			return;
