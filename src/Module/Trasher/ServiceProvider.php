@@ -72,7 +72,7 @@ final class ServiceProvider implements ModuleServiceProvider {
 		return $module_manager->register(
 			[
 				'display_name' => __( 'Trasher', 'multilingual-press' ),
-				'slug'         => 'class-' . __CLASS__,
+				'slug'         => 'module-' . self::MODULE,
 				'description'  => __(
 					'This module provides a new post meta and checkbox to trash the posts. If you enable the checkbox and move a post to the trash MultilingualPress also will trash the linked posts.',
 					'multilingual-press'
