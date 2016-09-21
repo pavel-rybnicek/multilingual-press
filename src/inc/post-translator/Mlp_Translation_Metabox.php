@@ -8,52 +8,44 @@ class Mlp_Translation_Metabox {
 	/**
 	 * @var string[]
 	 */
-	private $allowed_post_types = [ 
+	private $allowed_post_types = [
 		'post',
 		'page',
-	 ];
+	];
+
+	/**
+	 * @var Mlp_Site_Relations_Interface
+	 */
+	private $site_relations;
+
+	/**
+	 * @var Mlp_Assets
+	 */
+	private $assets;
 
 	/**
 	 * @var Mlp_Translatable_Post_Data
 	 */
 	private $data;
 
-	/**
-	 * @var Inpsyde_Property_List_Interface
-	 */
-	private $plugin_data;
-
-	/**
-	 * Constructor.
-	 *
-	 * @param Inpsyde_Property_List_Interface $plugin_data
-	 */
-	public function __construct( Inpsyde_Property_List_Interface $plugin_data ) {
+	public function __construct(
+		array $allowed_post_types,
+		Mlp_Translatable_Post_Data $data,
+		Mlp_Site_Relations_Interface $site_relations,
+		Mlp_Assets $assets
+	) {
 
 		if ( ! $this->is_post_editor() ) {
 			return;
 		}
 
-		$this->plugin_data = $plugin_data;
+		$allowed_post_types and $this->allowed_post_types = $allowed_post_types;
+		$this->data           = $data;
+		$this->site_relations = $site_relations;
+		$this->assets         = $assets;
+	}
 
-		/**
-		 * Filter the allowed post types.
-		 *
-		 * @param string[]                $allowed_post_types Allowed post type names.
-		 * @param Mlp_Translation_Metabox $meta_box           Translation meta box object.
-		 */
-		$this->allowed_post_types = (array) apply_filters(
-			'mlp_allowed_post_types',
-			$this->allowed_post_types,
-			$this
-		);
-
-		$this->data = new Mlp_Translatable_Post_Data(
-			null,
-			$this->allowed_post_types,
-			$this->plugin_data->get( 'link_table' ),
-			$this->plugin_data->get( 'content_relations' )
-		);
+	public function setup() {
 
 		add_action( 'add_meta_boxes', [ $this, 'register_meta_boxes' ], 10, 2 );
 
@@ -62,9 +54,9 @@ class Mlp_Translation_Metabox {
 		 *
 		 * @param bool $external_save_method Use an external save method?
 		 */
-		$mlp_external_save_method = (bool) apply_filters( 'mlp_external_save_method', false );
+		$mlp_external_save_method = (bool) apply_filters( 'mlp_external_save_method', FALSE );
 
-		if ( 'POST' === $_SERVER['REQUEST_METHOD'] && ! $mlp_external_save_method ) {
+		if ( 'POST' === $_SERVER[ 'REQUEST_METHOD' ] && ! $mlp_external_save_method ) {
 			add_action( 'save_post', [ $this->data, 'save' ], 10, 2 );
 		}
 
@@ -72,13 +64,13 @@ class Mlp_Translation_Metabox {
 		$nonce_validator   = Mlp_Nonce_Validator_Factory::create( 'mlp_post_translator_bc', get_current_blog_id() );
 		$request_validator = Mlp_Save_Post_Request_Validator_Factory::create( $nonce_validator );
 
-		$translator_init_args = [ 
+		$translator_init_args = [
 			'nonce'              => $nonce_validator,
 			'request_validator'  => $request_validator,
 			'allowed_post_types' => $this->allowed_post_types,
 			'basic_data'         => $this->data,
 			'instance'           => $this,
-		 ];
+		];
 		/**
 		 * Runs before internal actions are registered.
 		 *
@@ -91,6 +83,7 @@ class Mlp_Translation_Metabox {
 		 *                                    }
 		 */
 		do_action( 'mlp_post_translator_init', $translator_init_args );
+
 	}
 
 	/**
@@ -101,15 +94,14 @@ class Mlp_Translation_Metabox {
 	 */
 	public function register_meta_boxes( $post_type, WP_Post $post ) {
 
-		if ( ! in_array( $post_type, $this->allowed_post_types, true ) ) {
+		if ( ! in_array( $post_type, $this->allowed_post_types, TRUE ) ) {
 			return;
 		}
 
 		$current_blog_id = get_current_blog_id();
 
-		$site_relations = $this->plugin_data->get( 'site_relations' );
-
-		$related_blogs = $site_relations->get_related_sites( $current_blog_id, false );
+		$site_relations = $this->site_relations;
+		$related_blogs  = $site_relations->get_related_sites( $current_blog_id, FALSE );
 
 		if ( empty( $related_blogs ) ) {
 			return;
@@ -126,8 +118,7 @@ class Mlp_Translation_Metabox {
 			}
 		}
 
-		$assets = $this->plugin_data->get( 'assets' );
-		$assets->provide( [ 'mlp-admin', 'mlp_admin_css' ] );
+		$this->assets->provide( [ 'mlp-admin', 'mlp_admin_css' ] );
 	}
 
 	/**
@@ -152,14 +143,14 @@ class Mlp_Translation_Metabox {
 			$translated_status = ucfirst( $status );
 		}
 
-		if ( in_array( $status, [ 'publish', 'private' ], true ) ) {
+		if ( in_array( $status, [ 'publish', 'private' ], TRUE ) ) {
 			$template = esc_html_x(
 				'%1$s (%2$s)',
 				'No HTML; 1 = post status, 2 = publish time',
 				'multilingual-press'
 			);
 
-			$post_time = get_post_time( get_option( 'date_format' ), false, $remote_post );
+			$post_time = get_post_time( get_option( 'date_format' ), FALSE, $remote_post );
 
 			$translated_status = sprintf( $template, $translated_status, $post_time );
 		}
@@ -182,7 +173,7 @@ class Mlp_Translation_Metabox {
 		$blog_id = absint( $blog_id );
 
 		$remote_post = $this->data->get_remote_post( $post, $blog_id );
-		if ( isset( $remote_post->dummy ) && $remote_post->dummy === true ) {
+		if ( isset( $remote_post->dummy ) && $remote_post->dummy === TRUE ) {
 			return current_user_can_for_blog( $blog_id, 'edit_posts' );
 		}
 
@@ -206,11 +197,11 @@ class Mlp_Translation_Metabox {
 
 		$title = $this->get_metabox_title( $blog_id, $remote_post, $lang );
 
-		$metabox_data = [ 
+		$metabox_data = [
 			'remote_blog_id' => $blog_id,
 			'remote_post'    => $remote_post,
 			'language'       => $lang,
-		 ];
+		];
 
 		$nonce_validator = Mlp_Nonce_Validator_Factory::create(
 			"save_translation_of_post_{$post->ID}_for_site_$blog_id",
@@ -223,7 +214,7 @@ class Mlp_Translation_Metabox {
 			"inpsyde_multilingual_$blog_id",
 			$title,
 			[ $view, 'render' ],
-			null,
+			NULL,
 			'advanced',
 			'default',
 			$metabox_data
@@ -293,10 +284,10 @@ class Mlp_Translation_Metabox {
 	 */
 	private function register_metabox_view_details( Mlp_Translation_Metabox_View $view, WP_Post $post, $blog_id ) {
 
-		$callbacks = [ 
+		$callbacks = [
 			'title'  => [ $view, 'show_title' ],
 			'editor' => [ $view, 'show_editor' ],
-		 ];
+		];
 
 		/**
 		 * Filter the meta box view callbacks.
@@ -310,12 +301,12 @@ class Mlp_Translation_Metabox {
 			return;
 		}
 
-		if ( ! empty( $callbacks['title'] ) && post_type_supports( $post->post_type, 'title' ) ) {
-			add_action( 'mlp_translation_meta_box_top_' . $blog_id, $callbacks['title'], 10, 3 );
+		if ( ! empty( $callbacks[ 'title' ] ) && post_type_supports( $post->post_type, 'title' ) ) {
+			add_action( 'mlp_translation_meta_box_top_' . $blog_id, $callbacks[ 'title' ], 10, 3 );
 		}
 
-		if ( ! empty( $callbacks['editor'] ) && post_type_supports( $post->post_type, 'editor' ) ) {
-			add_action( 'mlp_translation_meta_box_main_' . $blog_id, $callbacks['editor'], 10, 3 );
+		if ( ! empty( $callbacks[ 'editor' ] ) && post_type_supports( $post->post_type, 'editor' ) ) {
+			add_action( 'mlp_translation_meta_box_main_' . $blog_id, $callbacks[ 'editor' ], 10, 3 );
 		}
 
 	}
@@ -330,10 +321,10 @@ class Mlp_Translation_Metabox {
 		global $pagenow;
 
 		if ( empty( $pagenow ) ) {
-			return false;
+			return FALSE;
 		}
 
-		return in_array( $pagenow, [ 'post-new.php', 'post.php' ], true );
+		return in_array( $pagenow, [ 'post-new.php', 'post.php' ], TRUE );
 	}
 
 	/**

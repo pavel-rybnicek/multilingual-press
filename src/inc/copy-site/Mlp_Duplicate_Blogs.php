@@ -52,17 +52,6 @@ class Mlp_Duplicate_Blogs {
 	}
 
 	/**
-	 * Register callbacks.
-	 *
-	 * @return void
-	 */
-	public function setup() {
-
-		add_filter( 'wpmu_new_blog', [ $this, 'wpmu_new_blog' ], 10, 2 );
-		add_filter( 'mlp_after_new_blog_fields', [ $this, 'display_fields' ] );
-	}
-
-	/**
 	 * Duplicates the old blog to the new blog
 	 *
 	 * @global    wpdb $wpdb WordPress Database Wrapper

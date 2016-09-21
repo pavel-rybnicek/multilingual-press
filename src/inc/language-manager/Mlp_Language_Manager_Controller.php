@@ -1,4 +1,5 @@
 <?php # -*- coding: utf-8 -*-
+
 /**
  * Class Mlp_Language_Manager_Controller
  *
@@ -11,9 +12,9 @@
 class Mlp_Language_Manager_Controller implements Mlp_Updatable {
 
 	/**
-	 * @var Inpsyde_Property_List_Interface
+	 * @var Mlp_Assets
 	 */
-	private $plugin_data;
+	private $assets;
 
 	/**
 	 * @var Mlp_Data_Access
@@ -58,22 +59,18 @@ class Mlp_Language_Manager_Controller implements Mlp_Updatable {
 	/**
 	 * Constructor.
 	 *
-	 * @param Inpsyde_Property_List_Interface $data
-	 * @param Mlp_Data_Access                 $database
-	 * @param wpdb                            $wpdb
+	 * @param Mlp_Assets      $assets
+	 * @param Mlp_Data_Access $database
+	 * @param wpdb            $wpdb
 	 */
-	public function __construct(
-		Inpsyde_Property_List_Interface $data,
-		Mlp_Data_Access                 $database,
-		wpdb                            $wpdb
-		) {
+	public function __construct( Mlp_Assets $assets, Mlp_Data_Access $database, wpdb $wpdb ) {
 
-		$this->plugin_data     = $data;
-		$this->wpdb = $wpdb;
+		$this->assets          = $assets;
+		$this->wpdb            = $wpdb;
 		$this->page_title      = __( 'Language Manager', 'multilingual-press' );
 		$this->db              = $database;
 		$this->pagination_data = new Mlp_Language_Manager_Pagination_Data( $database );
-		$this->setting       = new Mlp_Language_Manager_Options_Page_Data( $this->page_title );
+		$this->setting         = new Mlp_Language_Manager_Options_Page_Data( $this->page_title );
 		$this->view            = new Mlp_Language_Manager_Page_View(
 			$this->setting,
 			$this,
@@ -127,8 +124,7 @@ class Mlp_Language_Manager_Controller implements Mlp_Updatable {
 	 */
 	public function enqueue_style() {
 
-		$assets = $this->plugin_data->get( 'assets' );
-		$assets->provide( 'mlp_admin_css' );
+		$this->assets->provide( 'mlp_admin_css' );
 	}
 
 	/**

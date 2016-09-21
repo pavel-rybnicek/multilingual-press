@@ -41,22 +41,18 @@ class Mlp_Translatable_Post_Data implements Mlp_Translatable_Post_Data_Interface
 	private $source_site_id;
 
 	/**
-	 * @param                                 $deprecated
 	 * @param array                           $allowed_post_types
 	 * @param string                          $link_table
 	 * @param Mlp_Content_Relations_Interface $content_relations
 	 */
 	function __construct(
-		$deprecated,
 		array $allowed_post_types,
 		$link_table,
 		Mlp_Content_Relations_Interface $content_relations
 	) {
 
 		$this->allowed_post_types = $allowed_post_types;
-
 		$this->link_table = $link_table;
-
 		$this->content_relations = $content_relations;
 
 		if ( 'POST' === $_SERVER['REQUEST_METHOD'] ) {

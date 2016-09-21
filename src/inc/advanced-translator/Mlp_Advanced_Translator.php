@@ -5,10 +5,7 @@
  */
 class Mlp_Advanced_Translator {
 
-	/**
-	 * @var string
-	 */
-	private $ajax_action = 'mlp_process_post_data';
+	const AJAX_ACTION = 'mlp_process_post_data';
 
 	/**
 	 * @var Mlp_Translatable_Post_Data_Interface
@@ -18,9 +15,9 @@ class Mlp_Advanced_Translator {
 	/**
 	 * Passed by main controller.
 	 *
-	 * @var Inpsyde_Property_List_Interface
+	 * @var Mlp_Site_Relations_Interface
 	 */
-	private $plugin_data;
+	private $site_relations;
 
 	/**
 	 * @var Mlp_Advanced_Translator_Data
@@ -34,29 +31,10 @@ class Mlp_Advanced_Translator {
 	 */
 	private $view;
 
-	/**
-	 * Constructor
-	 *
-	 * @param  Inpsyde_Property_List_Interface $data
-	 */
-	public function __construct( Inpsyde_Property_List_Interface $data ) {
 
-		$this->plugin_data = $data;
+	public function __construct( Mlp_Site_Relations_Interface $site_relations ) {
 
-		// Quit here if module is turned off
-		if ( ! $this->register_setting() ) {
-			return;
-		}
-
-		if ( defined( 'DOING_AJAX' ) && DOING_AJAX ) {
-			add_action( "wp_ajax_{$this->ajax_action}", [ $this, 'process_post_data' ] );
-		}
-
-		add_action( 'mlp_post_translator_init', [ $this, 'setup' ] );
-		add_filter( 'mlp_external_save_method', '__return_true' );
-
-		// Disable default actions
-		add_action( 'mlp_translation_meta_box_registered', [ $this, 'register_metabox_view_details' ], 10, 2 );
+		$this->site_relations = $site_relations;
 	}
 
 	/**
@@ -76,7 +54,7 @@ class Mlp_Advanced_Translator {
 			null,
 			$base_data['basic_data'],
 			$base_data['allowed_post_types'],
-			$this->plugin_data->get( 'site_relations' )
+			$this->site_relations
 		);
 
 		$this->view = new Mlp_Advanced_Translator_View( $this->translation_data );
@@ -145,30 +123,6 @@ class Mlp_Advanced_Translator {
 		if ( ! empty( $taxonomies ) ) {
 			add_action( $base . 'bottom_' . $blog_id, [ $this->view, 'show_taxonomies' ], 10, 3 );
 		}
-	}
-
-	/**
-	 * Register our UI for the module manager.
-	 *
-	 * @return bool
-	 */
-	private function register_setting() {
-
-		/** @var Mlp_Module_Manager_Interface $module_manager */
-		$module_manager = $this->plugin_data->get( 'module_manager' );
-
-		$display_name = __( 'Advanced Translator', 'multilingual-press' );
-
-		$description = __(
-			'Use the WYSIWYG editor to write all translations on one screen, including thumbnails and taxonomies.',
-			'multilingual-press'
-		);
-
-		return $module_manager->register( [
-			'display_name' => $display_name,
-			'slug'         => 'class-' . __CLASS__,
-			'description'  => $description,
-		 ] );
 	}
 
 	/**

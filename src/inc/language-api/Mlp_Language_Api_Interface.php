@@ -79,8 +79,6 @@ interface Mlp_Language_Api_Interface {
 	 */
 	public function get_site_languages( $base_site = 0 );
 
-	public function load_language_manager();
-
 	/**
 	 * @param  string $language Formatted like en_GB
 	 * @param  int    $site_id
