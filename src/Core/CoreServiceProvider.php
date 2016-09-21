@@ -73,8 +73,15 @@ final class CoreServiceProvider implements BootableServiceProvider {
 		$locations->add_dir( "{$plugin_path}/assets/images", "{$plugin_url}/assets/images", 'images' );
 		$locations->add_dir( "{$plugin_path}/assets/images/flags", "{$plugin_url}/assets/images/flags", 'flags' );
 
-		$setup = new CoreSetup();
-		$setup->setup( $container );
+		add_action(
+			'inpsyde_mlp_loaded',
+			function () use ( $container ) {
+
+				$setup = new CoreSetup();
+				$setup->setup( $container );
+			},
+			0
+		);
 	}
 
 }

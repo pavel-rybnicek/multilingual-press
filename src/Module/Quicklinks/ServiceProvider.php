@@ -59,9 +59,9 @@ final class ServiceProvider implements ModuleServiceProvider {
 	/**
 	 * @inheritdoc
 	 */
-	public function setup_module( \Mlp_Module_Manager $module_manager, Container $container ) {
+	public function register_module( \Mlp_Module_Manager $module_manager, Container $container ) {
 
-		$module_manager->register(
+		return $module_manager->register(
 			[
 				'description'  => __( 'Show link to translations in post content.', 'multilingual-press' ),
 				'display_name' => __( 'Quicklink', 'multilingual-press' ),

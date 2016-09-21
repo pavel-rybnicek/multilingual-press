@@ -23,7 +23,7 @@ final class ServiceProvider implements ModuleServiceProvider {
 	 */
 	public function provide( Container $container ) {
 
-		$container[ 'mlp.module.cpt_support' ] = function ( Container $container ) {
+		$container[ 'mlp.module.cpt_support' ] = function () {
 
 			return new \Mlp_Cpt_Translator();
 		};
@@ -67,11 +67,11 @@ final class ServiceProvider implements ModuleServiceProvider {
 	/**
 	 * @inheritdoc
 	 */
-	public function setup_module( \Mlp_Module_Manager $module_manager, Container $container ) {
+	public function register_module( \Mlp_Module_Manager $module_manager, Container $container ) {
 
 		$cpt_support = $container[ 'mlp.module.cpt_support' ];
 
-		$module_manager->register(
+		return $module_manager->register(
 			[
 				'description'  => __(
 					'Enable translation of custom post types. Creates a second settings box below this. The post types must be activated for the whole network or on the main site.',

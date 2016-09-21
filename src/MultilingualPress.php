@@ -17,6 +17,11 @@ use Inpsyde\MultilingualPress\Service\ServiceProvider;
 class MultilingualPress {
 
 	/**
+	 * @var Container
+	 */
+	private static $container_instance;
+
+	/**
 	 * @var bool
 	 */
 	private static $is_active_site;
@@ -44,51 +49,22 @@ class MultilingualPress {
 	/**
 	 * Resolve a shared element in the container.
 	 *
-	 * @param string $index
+	 * @param string $name
 	 *
 	 * @return mixed
 	 *
 	 * @throws \BadMethodCallException If called too early
 	 * @throws ContainerException If the requested service/value is not found or not shared
 	 */
-	public static function resolve( $index ) {
+	public static function resolve( $name ) {
 
-		$container = apply_filters( 'inpsyde_mlp_container', NULL );
-
-		if ( ! $container instanceof Container ) {
+		if ( ! self::$container_instance instanceof Container ) {
 			throw new \BadMethodCallException(
-				sprintf( '%s can only be called after MultilingualPress has been bootstrapped.', __METHOD__ )
+				sprintf( '%s can only be called after MultilingualPress has been initialised.', __METHOD__ )
 			);
 		}
 
-		return $container[ $index ];
-
-	}
-
-	/**
-	 * Check if the current context needs more MultilingualPress actions.
-	 *
-	 * @return bool
-	 */
-	public static function is_active_site() {
-
-		if ( is_bool( self::$is_active_site ) ) {
-			return self::$is_active_site;
-		}
-
-		global $pagenow;
-
-		if ( in_array( $pagenow, [ 'admin-post.php', 'admin-ajax.php' ], TRUE ) || is_network_admin() ) {
-			self::$is_active_site = TRUE;
-
-			return TRUE;
-		}
-
-		$relations = get_site_option( 'inpsyde_multilingual', [] );
-
-		self::$is_active_site = array_key_exists( get_current_blog_id(), $relations );
-
-		return self::$is_active_site;
+		return self::$container_instance[ $name ];
 	}
 
 	/**
@@ -97,6 +73,7 @@ class MultilingualPress {
 	public function __construct( Container $container ) {
 
 		$this->container or $this->container = $container;
+		self::$container_instance or self::$container_instance = $this->container;
 	}
 
 	/**
@@ -131,7 +108,7 @@ class MultilingualPress {
 		// After this, container is read-only
 		$this->container->lock();
 
-		$is_active = self::is_active_site();
+		$is_active = $this->is_active_site();
 
 		// Every bootable module is now booted.
 		array_walk(
@@ -145,14 +122,14 @@ class MultilingualPress {
 			$is_active
 		);
 
+		unset( $this->bootable );
+
 		// In case site is not active, there's nothing else to do
 		if ( ! $is_active ) {
 			$this->bootstrapped = TRUE;
 
 			return;
 		}
-
-		unset( $this->bootable );
 
 		// Let's retrieve the instance of module manager to setup modules
 		$module_manager = $this->container[ 'mlp.modules_manager' ];
@@ -172,28 +149,26 @@ class MultilingualPress {
 		 */
 		do_action( 'inpsyde_mlp_loaded' );
 
-		// Load all module providers
-		$this->load_modules();
+		// Register all modules
+		$this->register_modules();
 
-		// From now, only shared elements can be get from the container by using MultilingualPress::resolve()
+		// From this point on, only shared elements can be get from the container by using MultilingualPress::resolve()
 		$this->container->bootstrap();
-
-		unset( $this->modules );
 
 		// Ensure this method can not be called again
 		$this->bootstrapped = TRUE;
 	}
 
 	/**
-	 * Load all the modules.
+	 * Register all the modules.
 	 */
-	private function load_modules() {
+	private function register_modules() {
 
 		array_walk(
 			$this->modules,
 			function ( ModuleServiceProvider $provider, $index, \Mlp_Module_Manager $module_manager ) {
 
-				if ( $provider->setup_module( $module_manager, $this->container ) ) {
+				if ( $provider->register_module( $module_manager, $this->container ) ) {
 
 					$module = $provider->provided_module();
 
@@ -210,6 +185,34 @@ class MultilingualPress {
 			},
 			$module_manager
 		);
+
+		unset( $this->modules );
+	}
+
+	/**
+	 * Check if the current context needs more MultilingualPress actions.
+	 *
+	 * @return bool
+	 */
+	private function is_active_site() {
+
+		if ( is_bool( self::$is_active_site ) ) {
+			return self::$is_active_site;
+		}
+
+		global $pagenow;
+
+		if ( in_array( $pagenow, [ 'admin-post.php', 'admin-ajax.php' ], TRUE ) || is_network_admin() ) {
+			self::$is_active_site = TRUE;
+
+			return TRUE;
+		}
+
+		$relations = get_site_option( 'inpsyde_multilingual', [] );
+
+		self::$is_active_site = array_key_exists( get_current_blog_id(), $relations );
+
+		return self::$is_active_site;
 	}
 
 }

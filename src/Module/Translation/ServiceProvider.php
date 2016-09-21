@@ -75,7 +75,7 @@ final class ServiceProvider implements ModuleServiceProvider {
 	/**
 	 * @inheritdoc
 	 */
-	public function setup_module( \Mlp_Module_Manager $module_manager, Container $container ) {
+	public function register_module( \Mlp_Module_Manager $module_manager, Container $container ) {
 
 		return $module_manager->register(
 			[

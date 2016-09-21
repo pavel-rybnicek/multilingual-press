@@ -9,17 +9,12 @@ namespace Inpsyde\MultilingualPress\Service;
  */
 final class Container implements \ArrayAccess {
 
-	const STATUS_IDLE = 0;
-	const STATUS_UNLOCKED = 1;
-	const STATUS_LOCKED = 2;
-	const STATUS_BOOTSTRAPPED = 4;
-
 	/**
 	 * Holds the bitmask of current container status built using class status flags
 	 *
 	 * @var int
 	 */
-	private $status = self::STATUS_IDLE;
+	private $status = 0;
 
 	/**
 	 * Storage for already factored object or for things that not to be factored (scalars, array and objects)
@@ -52,46 +47,19 @@ final class Container implements \ArrayAccess {
 	}
 
 	/**
-	 * Returns current status as bitmask of class status flags.
-	 *
-	 * @return int
-	 */
-	public function status() {
-
-		return $this->status;
-	}
-
-	/**
 	 * Sets container status to locked.
-	 *
-	 * @throws \BadMethodCallException if called when the container is in any state but unlocked.
 	 */
 	public function lock() {
 
-		if ( $this->status() !== self::STATUS_UNLOCKED ) {
-			throw new \BadMethodCallException(
-				sprintf( '%s can be marked as locked only when already in "unlocked" status.', __CLASS__ )
-			);
-		}
-
-		$this->status = self::STATUS_LOCKED;
+		$this->status = 1;
 	}
 
 	/**
 	 * Sets container status to bootstrapped.
-	 *
-	 * @throws \BadMethodCallException if called when the container is in any state but locked.
 	 */
 	public function bootstrap() {
 
-		if ( $this->status() !== self::STATUS_LOCKED ) {
-			throw new \BadMethodCallException(
-				sprintf( '%s can be marked as bootstrapped only when already locked.', __CLASS__ )
-			);
-		}
-
-		// When container is bootstrapped it is also locked
-		$this->status |= self::STATUS_BOOTSTRAPPED;
+		$this->status = 2;
 	}
 
 	/**
@@ -130,7 +98,7 @@ final class Container implements \ArrayAccess {
 		$is_value = array_key_exists( $offset, $this->values );
 
 		// Only shared values are accessible after the container has been bootstrapped
-		if ( ! array_key_exists( $offset, $this->shared ) && ( $this->status() & self::STATUS_BOOTSTRAPPED ) ) {
+		if ( ! array_key_exists( $offset, $this->shared ) && $this->status > 1 ) {
 			throw ContainerException::bootstrapped_container( $offset, 'get' );
 		}
 
@@ -140,6 +108,12 @@ final class Container implements \ArrayAccess {
 
 		$factory                 = $this->factories[ $offset ];
 		$this->values[ $offset ] = $factory( $this );
+
+		// If the container is locked, we don't need anymore the factory we just used, because no one could access it
+		// nor in read nor in write mode, so we can free some memory unsetting it.
+		if ( $this->status > 0 ) {
+			unset( $this->factories[ $offset ] );
+		}
 
 		return $this->values[ $offset ];
 	}
@@ -155,14 +129,9 @@ final class Container implements \ArrayAccess {
 	 */
 	public function offsetSet( $offset, $value ) {
 
-		$status = $this->status();
-
-		if ( $status & self::STATUS_LOCKED ) {
+		if ( $this->status > 0 ) {
 			throw ContainerException::locked_container( $offset, 'set' );
 		}
-
-		// Move status to unlocked when called first time
-		( $status === self::STATUS_IDLE) and $this->status = self::STATUS_UNLOCKED;
 
 		if ( ! is_callable( $value ) ) {
 			// Scalar values are always shared
@@ -185,34 +154,7 @@ final class Container implements \ArrayAccess {
 	 */
 	public function offsetUnset( $offset ) {
 
-		if ( ! $this->offsetExists( $offset ) ) {
-			throw ContainerException::service_not_found( $offset, 'unset' );
-		}
-
-		if ( $this->status() & self::STATUS_LOCKED ) {
-			throw ContainerException::locked_container( $offset, 'unset' );
-		}
-
-		if ( $this->status() & self::STATUS_BOOTSTRAPPED ) {
-			throw ContainerException::bootstrapped_container( $offset, 'unset' );
-		}
-
-		$is_factory = array_key_exists( $offset, $this->factories );
-		$is_value   = array_key_exists( $offset, $this->values );
-
-		// An already resolved object is something that, very likely, was injected in some other object.
-		// If we would allow to unset it we could produce some very ugly things.
-		if ( $is_factory && $is_value ) {
-			throw ServiceLockedException::for_service( $offset, 'unset' );
-		}
-
-		if ( $is_factory ) {
-			unset( $this->factories[ $offset ] );
-		}
-
-		if ( $is_value ) {
-			unset( $this->values[ $offset ] );
-		}
+		throw ContainerException::unset_disabled();
 	}
 
 	/**
@@ -232,9 +174,6 @@ final class Container implements \ArrayAccess {
 	/**
 	 * Changes the factory of an object that was already registered with another factory callback.
 	 *
-	 * The new factory callback will receive two arguments:
-	 * the result of old factory (so the object) as first argument, and the container instance as second.
-	 *
 	 * @param string   $offset
 	 * @param callable $new_factory
 	 *
@@ -243,9 +182,7 @@ final class Container implements \ArrayAccess {
 	 */
 	public function extend( $offset, callable $new_factory ) {
 
-		$status = $this->status();
-
-		if ( $status & self::STATUS_LOCKED ) {
+		if ( $this->status > 0 ) {
 			throw ContainerException::locked_container( $offset, 'extend' );
 		}
 
@@ -253,12 +190,22 @@ final class Container implements \ArrayAccess {
 			throw ContainerException::service_not_found( $offset, 'extend' );
 		}
 
+		/**
+		 * If the key is present in factories *and* in values, it means it was already resolved so we can't allow
+		 * to replace it otherwise we should also replace the "factored" value, which would break stuff.
+		 */
 		if ( array_key_exists( $offset, $this->values ) ) {
 			throw ServiceLockedException::for_service( $offset, 'extend' );
 		}
 
-		$old_factory                = $this->factories[ $offset ];
+		$old_factory = $this->factories[ $offset ];
+
 		$this->factories[ $offset ] = function ( Container $container ) use ( $new_factory, $old_factory ) {
+
+			/**
+			 * The new factory receives
+			 * as 1st argument the object "factored" by the old factory and as 2nd argument the container.
+			 */
 
 			return $new_factory( $old_factory( $container ), $container );
 		};

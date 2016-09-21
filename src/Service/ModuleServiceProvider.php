@@ -20,6 +20,6 @@ interface ModuleServiceProvider extends BootableServiceProvider {
 	 *
 	 * @return bool
 	 */
-	public function setup_module( \Mlp_Module_Manager $module_manager, Container $container );
+	public function register_module( \Mlp_Module_Manager $module_manager, Container $container );
 
 }
