@@ -9,11 +9,9 @@
 class Mlp_Relationship_Control implements Mlp_Updatable {
 
 	/**
-	 * Passed by main controller.
-	 *
-	 * @var Inpsyde_Property_List_Interface
+	 * @var Mlp_Relationship_Changer
 	 */
-	private $plugin;
+	private $changer;
 
 	/**
 	 * Unique prefix to detect our registered actions and form names.
@@ -31,19 +29,13 @@ class Mlp_Relationship_Control implements Mlp_Updatable {
 	 * Constructor
 	 *
 	 * @uses  Mlp_Relationship_Control_Data
-	 * @param Inpsyde_Property_List_Interface $plugin
+	 *
+     * @param Mlp_Relationship_Changer $changer
 	 */
-	public function __construct( Inpsyde_Property_List_Interface $plugin ) {
+	public function __construct( Mlp_Relationship_Changer $changer ) {
 
-		$this->plugin = $plugin;
-
+		$this->changer = $changer;
 		$this->data = new Mlp_Relationship_Control_Data();
-
-		if ( $this->is_ajax() ) {
-			$this->set_up_ajax();
-		} else {
-			add_action( 'mlp_translation_meta_box_bottom', [ $this, 'set_up_meta_box_handlers' ], 200, 3 );
-		}
 	}
 
 	/**
@@ -80,9 +72,9 @@ class Mlp_Relationship_Control implements Mlp_Updatable {
 
 		$start = strlen( $this->prefix ) + 1;
 		$func = substr( $_REQUEST['action'], $start ) . '_post';
-
-		$reconnect = new Mlp_Relationship_Changer( $this->plugin );
-		$result = $reconnect->$func();
+		/** @var callable $method */
+		$method = [$this->changer, $func];
+		$result =  $method();
 
 		status_header( 200 );
 
@@ -144,7 +136,7 @@ class Mlp_Relationship_Control implements Mlp_Updatable {
 	 *
 	 * @return bool
 	 */
-	private function is_ajax() {
+	public function is_ajax() {
 
 		if ( ! defined( 'DOING_AJAX' ) || ! DOING_AJAX ) {
 			return false;

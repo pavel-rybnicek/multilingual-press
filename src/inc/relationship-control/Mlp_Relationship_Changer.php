@@ -47,11 +47,11 @@ class Mlp_Relationship_Changer {
 	private $content_relations;
 
 	/**
-	 * @param Inpsyde_Property_List_Interface $data
+	 * @param Mlp_Content_Relations_Interface $content_relations
 	 */
-	public function __construct( Inpsyde_Property_List_Interface $data ) {
+	public function __construct( Mlp_Content_Relations_Interface $content_relations ) {
 
-		$this->content_relations = $data->get( 'content_relations' );
+		$this->content_relations = $content_relations;
 		$this->prepare_values();
 	}
 

@@ -19,11 +19,6 @@ class Mlp_Quicklink implements Mlp_Updatable {
 	private $language_api;
 
 	/**
-	 * @var Mlp_Module_Manager_Interface
-	 */
-	private $module_manager;
-
-	/**
 	 * @var Inpsyde_Nonce_Validator
 	 */
 	private $nonce_validator;
@@ -36,34 +31,28 @@ class Mlp_Quicklink implements Mlp_Updatable {
 	/**
 	 * Constructor. Sets up the properties.
 	 *
-	 * @param Mlp_Module_Manager_Interface $module_manager Module manager object.
-	 * @param Mlp_Language_Api_Interface   $language_api   Language API object.
-	 * @param Mlp_Assets_Interface         $assets         Asset manager object.
+	 * @param Mlp_Language_Api_Interface $language_api Language API object.
+	 * @param Mlp_Assets_Interface       $assets       Asset manager object.
 	 */
 	public function __construct(
-		Mlp_Module_Manager_Interface $module_manager,
 		Mlp_Language_Api_Interface $language_api,
 		Mlp_Assets_Interface $assets
 	) {
 
-		$this->module_manager = $module_manager;
-
 		$this->language_api = $language_api;
-
 		$this->assets = $assets;
-
 		$this->nonce_validator = Mlp_Nonce_Validator_Factory::create( 'save_quicklink_position' );
 	}
 
 	/**
 	 * Wires up all functions.
 	 *
-	 * @return void
+	 * @param string $module_name
 	 */
-	public function initialize( ) {
+	public function initialize( $module_name ) {
 
 		// Quit here if module is turned off
-		if ( ! $this->register_setting() ) {
+		if ( ! did_action( "inpsyde_module_{$module_name}_setup" ) ) {
 			return;
 		}
 
@@ -73,8 +62,8 @@ class Mlp_Quicklink implements Mlp_Updatable {
 			// Use this hook to handle the user input of your modules' options page form fields
 			add_filter( 'mlp_modules_save_fields', [ $this, 'save_options_page_form_fields' ] );
 		} else {
-			if ( ! empty( $_POST['mlp_quicklink_select'] ) ) {
-				$this->redirect_quick_link( (string) $_POST['mlp_quicklink_select'] );
+			if ( ! empty( $_POST[ 'mlp_quicklink_select' ] ) ) {
+				$this->redirect_quick_link( (string) $_POST[ 'mlp_quicklink_select' ] );
 			}
 
 			add_action( 'wp_head', [ $this, 'load_style' ], 0 );
@@ -92,12 +81,12 @@ class Mlp_Quicklink implements Mlp_Updatable {
 
 		$translations = $this->get_translations();
 		if ( ! $translations ) {
-			return false;
+			return FALSE;
 		}
 
 		$theme_support = get_theme_support( 'multilingualpress' );
-		if ( ! empty( $theme_support[0]['quicklink_style'] ) ) {
-			return false;
+		if ( ! empty( $theme_support[ 0 ][ 'quicklink_style' ] ) ) {
+			return FALSE;
 		}
 
 		return $this->assets->provide( 'mlp_frontend_css' );
@@ -114,21 +103,6 @@ class Mlp_Quicklink implements Mlp_Updatable {
 	}
 
 	/**
-	 * Registers the module.
-	 *
-	 * @return bool
-	 */
-	private function register_setting() {
-
-		return $this->module_manager->register( [
-			'description'  => __( 'Show link to translations in post content.', 'multilingual-press' ),
-			'display_name' => __( 'Quicklink', 'multilingual-press' ),
-			'slug'         => 'class-' . __CLASS__,
-			'state'        => 'off',
-		] );
-	}
-
-	/**
 	 * Catches quicklink submissions and redirects if the URL is valid.
 	 *
 	 * @since 1.0.4
@@ -142,7 +116,7 @@ class Mlp_Quicklink implements Mlp_Updatable {
 		$callback = [ $this, 'extend_allowed_hosts' ];
 		add_filter( 'allowed_redirect_hosts', $callback, 10, 2 );
 
-		$url = wp_validate_redirect( $url, false );
+		$url = wp_validate_redirect( $url, FALSE );
 
 		remove_filter( 'allowed_redirect_hosts', $callback );
 
@@ -160,7 +134,7 @@ class Mlp_Quicklink implements Mlp_Updatable {
 	 *
 	 * @wp-hook allowed_redirect_hosts
 	 *
-	 * @since 1.0.4
+	 * @since   1.0.4
 	 *
 	 * @param string[] $home_hosts  Array with one entry: the host of home_url().
 	 * @param string   $remote_host Host name of the URL to validate.
@@ -170,7 +144,7 @@ class Mlp_Quicklink implements Mlp_Updatable {
 	public function extend_allowed_hosts( array $home_hosts, $remote_host ) {
 
 		// Network with sub directories.
-		if ( in_array( $remote_host, $home_hosts, true ) ) {
+		if ( in_array( $remote_host, $home_hosts, TRUE ) ) {
 			return $home_hosts;
 		}
 
@@ -241,11 +215,11 @@ ORDER BY domain DESC";
 		// Get post link option.
 		$option = get_site_option( 'inpsyde_multilingual_quicklink_options' );
 
-		$position = isset( $option['mlp_quicklink_position'] ) ? $option['mlp_quicklink_position'] : 'tr';
+		$position = isset( $option[ 'mlp_quicklink_position' ] ) ? $option[ 'mlp_quicklink_position' ] : 'tr';
 
 		$switcher = $this->to_html( $translated, $position );
 
-		if ( 't' === $position[0] ) {
+		if ( 't' === $position[ 0 ] ) {
 			// Position at the top.
 			return $switcher . $content;
 		}
@@ -285,14 +259,14 @@ ORDER BY domain DESC";
 	protected function to_html( array $translated, $position ) {
 
 		if ( 4 > count( $translated ) ) {
-			$type = 'links';
-			$element = 'a';
-			$glue = '<br>';
+			$type      = 'links';
+			$element   = 'a';
+			$glue      = '<br>';
 			$container = 'links';
 		} else {
-			$type = 'options';
-			$element = 'option';
-			$glue = '';
+			$type      = 'options';
+			$element   = 'option';
+			$glue      = '';
 			$container = 'form';
 		}
 
@@ -431,9 +405,9 @@ HTML;
 		$options = get_site_option( 'inpsyde_multilingual_quicklink_options' );
 
 		// Get values from submitted form
-		$options['mlp_quicklink_position'] = isset( $_POST['quicklink-position'] )
-			? esc_attr( $_POST['quicklink-position'] )
-			: false;
+		$options[ 'mlp_quicklink_position' ] = isset( $_POST[ 'quicklink-position' ] )
+			? esc_attr( $_POST[ 'quicklink-position' ] )
+			: FALSE;
 
 		update_site_option( 'inpsyde_multilingual_quicklink_options', $options );
 	}

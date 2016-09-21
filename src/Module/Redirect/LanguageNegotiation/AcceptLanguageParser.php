@@ -25,10 +25,10 @@ class AcceptLanguageParser implements Parser {
 
 		$header = $this->remove_comment( $header );
 		if ( '' === $header ) {
-			return [ ];
+			return [];
 		}
 
-		return array_reduce( $this->get_values( $header ), [ $this, 'add_value' ], [ ] );
+		return array_reduce( $this->get_values( $header ), [ $this, 'add_value' ], [] );
 	}
 
 	/**
@@ -44,7 +44,7 @@ class AcceptLanguageParser implements Parser {
 
 		$delimiter = '~';
 
-		$delimiter_found = false !== strpos( $header, $delimiter );
+		$delimiter_found = FALSE !== strpos( $header, $delimiter );
 		if ( $delimiter_found ) {
 			$header = str_replace( $delimiter, "\\$delimiter", $header );
 		}
@@ -84,7 +84,7 @@ class AcceptLanguageParser implements Parser {
 
 		$language = strtok( $value, ';' );
 		if ( ! $this->validate_language( $language ) ) {
-			return [ ];
+			return [];
 		}
 
 		if ( $language === $value ) {

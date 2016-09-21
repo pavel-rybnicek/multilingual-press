@@ -1,5 +1,4 @@
 <?php # -*- coding: utf-8 -*-
-
 /**
  * Main controller for the Redirect feature.
  */
@@ -11,11 +10,6 @@ class Mlp_Redirect {
 	private $language_api;
 
 	/**
-	 * @var Mlp_Module_Manager_Interface
-	 */
-	private $modules;
-
-	/**
 	 * @var string
 	 */
 	private $option = 'inpsyde_multilingual_redirect';
@@ -23,17 +17,9 @@ class Mlp_Redirect {
 	/**
 	 * Constructor.
 	 *
-	 * @param Mlp_Module_Manager_Interface $modules
-	 * @param Mlp_Language_Api_Interface   $language_api
-	 * @param                              $deprecated
+	 * @param Mlp_Language_Api_Interface $language_api
 	 */
-	public function __construct(
-		Mlp_Module_Manager_Interface $modules,
-		Mlp_Language_Api_Interface $language_api,
-		$deprecated
-	) {
-
-		$this->modules = $modules;
+	public function __construct( Mlp_Language_Api_Interface $language_api ) {
 
 		$this->language_api = $language_api;
 	}
@@ -41,12 +27,15 @@ class Mlp_Redirect {
 	/**
 	 * Determines the current state and actions, and calls subsequent methods.
 	 *
+	 * @param string $module_name
+	 *
 	 * @return bool
 	 */
-	public function setup() {
+	public function setup( $module_name ) {
 
-		if ( ! $this->register_setting() ) {
-			return false;
+		// Quit here if module is turned off
+		if ( did_action( "inpsyde_module_{$module_name}_setup" ) ) {
+			return FALSE;
 		}
 
 		$this->user_settings();
@@ -54,7 +43,7 @@ class Mlp_Redirect {
 		if ( ! is_admin() && ( ! defined( 'DOING_AJAX' ) || ! DOING_AJAX ) ) {
 			$this->frontend_redirect();
 
-			return true;
+			return TRUE;
 		}
 
 		$this->site_settings();
@@ -63,7 +52,7 @@ class Mlp_Redirect {
 			$this->activation_column();
 		}
 
-		return true;
+		return TRUE;
 	}
 
 	/**
@@ -86,7 +75,7 @@ class Mlp_Redirect {
 	 */
 	private function activation_column() {
 
-		$controller = new Mlp_Redirect_Column( null, null );
+		$controller = new Mlp_Redirect_Column( NULL, NULL );
 		$controller->setup();
 	}
 
@@ -110,17 +99,5 @@ class Mlp_Redirect {
 
 		$controller = new Mlp_Redirect_Site_Settings( $this->option );
 		$controller->setup();
-	}
-
-	/**
-	 * Registers the settings.
-	 *
-	 * @return bool
-	 */
-	private function register_setting() {
-
-		$controller = new Mlp_Redirect_Registration( $this->modules );
-
-		return $controller->setup();
 	}
 }

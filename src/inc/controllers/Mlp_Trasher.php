@@ -16,36 +16,6 @@ class Mlp_Trasher {
 	private $saved_post = false;
 
 	/**
-	 * Constructor. Sets up the properties.
-	 *
-	 * @param Mlp_Module_Manager_Interface $module_manager Module manager object.
-	 */
-	public function __construct( Mlp_Module_Manager_Interface $module_manager ) {
-
-		$this->module_manager = $module_manager;
-	}
-
-	/**
-	 * Wires up all functions.
-	 *
-	 * @return void
-	 */
-	public function initialize() {
-
-		// Quit here if module is turned off.
-		if ( ! $this->register_setting() ) {
-			return;
-		}
-
-		// Register Trasher post meta to the submit box.
-		add_action( 'post_submitbox_misc_actions', [ $this, 'post_submitbox_misc_actions' ] );
-
-		add_action( 'wp_trash_post', [ $this, 'trash_post' ] );
-
-		add_action( 'save_post', [ $this, 'save_post' ] );
-	}
-
-	/**
 	 * Displays the checkbox for the Trasher post meta.
 	 *
 	 * @since 0.1
@@ -164,24 +134,5 @@ class Mlp_Trasher {
 
 			restore_current_blog();
 		}
-	}
-
-	/**
-	 * Registers the UI for the module manager.
-	 *
-	 * @return bool
-	 */
-	private function register_setting() {
-
-		$description = __(
-			'This module provides a new post meta and checkbox to trash the posts. If you enable the checkbox and move a post to the trash MultilingualPress also will trash the linked posts.',
-			'multilingual-press'
-		);
-
-		return $this->module_manager->register( [
-			'display_name' => __( 'Trasher', 'multilingual-press' ),
-			'slug'         => 'class-' . __CLASS__,
-			'description'  => $description,
-		] );
 	}
 }

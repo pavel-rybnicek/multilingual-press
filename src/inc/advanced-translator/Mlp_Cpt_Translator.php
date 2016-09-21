@@ -26,40 +26,15 @@ class Mlp_Cpt_Translator implements Mlp_Updatable {
 	private $form_name = 'mlp_cpts';
 
 	/**
-	 * Passed by main controller.
-	 *
-	 * @type Inpsyde_Property_List_Interface
-	 */
-	private $plugin_data;
-
-	/**
 	 * @var Inpsyde_Nonce_Validator
 	 */
 	private $nonce_validator;
 
 	/**
 	 * Constructor
-	 *
-	 * @param  Inpsyde_Property_List_Interface $data
 	 */
-	public function __construct( Inpsyde_Property_List_Interface $data ) {
-
-		$this->plugin_data = $data;
+	public function __construct() {
 		$this->nonce_validator = Mlp_Nonce_Validator_Factory::create( 'save_cpt_translator_settings' );
-
-		// Quit here if module is turned off
-		if ( ! $this->register_setting() )
-			return;
-
-		add_filter( 'mlp_allowed_post_types', [ $this, 'filter_allowed_post_types' ] );
-
-		add_action( 'mlp_modules_add_fields', [ $this, 'draw_options_page_form_fields' ] );
-		// Use this hook to handle the user input of your modules' options page form fields
-		add_action( 'mlp_modules_save_fields', [ $this, 'save_options_page_form_fields' ] );
-
-		// replace the permalink if selected
-		add_action( 'mlp_before_link', [ $this, 'before_mlp_link' ] );
-		add_action( 'mlp_after_link', [ $this, 'after_mlp_link' ] );
 	}
 
 	/**
@@ -72,31 +47,6 @@ class Mlp_Cpt_Translator implements Mlp_Updatable {
 	public function filter_allowed_post_types( array $post_types ) {
 
 		return array_merge( $post_types, $this->get_active_post_types() );
-	}
-
-	/**
-	 * Register our UI for the module manager.
-	 *
-	 * @return bool
-	 */
-	private function register_setting() {
-
-		/** @var Mlp_Module_Manager_Interface $module_manager */
-		$module_manager = $this->plugin_data->get( 'module_manager' );
-
-		$display_name = __( 'Custom Post Type Translator', 'multilingual-press' );
-
-		$description = __(
-			'Enable translation of custom post types. Creates a second settings box below this. The post types must be activated for the whole network or on the main site.',
-			'multilingual-press'
-		);
-
-		return $module_manager->register( [
-			'display_name' => $display_name,
-			'slug'         => 'class-' . __CLASS__,
-			'description'  => $description,
-			'callback'     => [ $this, 'extend_settings_description' ],
-		] );
 	}
 
 	/**

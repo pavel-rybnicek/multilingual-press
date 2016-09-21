@@ -12,79 +12,11 @@
 class Mlp_User_Backend_Language {
 
 	/**
-	 * $var Mlp_Module_Manager_Interface
-	 */
-	private $module_manager;
-
-	/**
 	 * Internal identifier.
 	 *
 	 * @var string
 	 */
 	private $key = 'mlp_user_language';
-
-	/**
-	 * Constructor.
-	 *
-	 * @param Mlp_Module_Manager_Interface $module_manager
-	 */
-	public function __construct( Mlp_Module_Manager_Interface $module_manager ) {
-
-		$this->module_manager = $module_manager;
-	}
-
-	/**
-	 * Set up filters, when active.
-	 *
-	 * @return void
-	 */
-	public function setup() {
-
-		$is_active = $this->module_manager->register( [
-			'display_name_callback' => [ $this, 'get_module_title' ],
-			'slug'                  => 'class-' . __CLASS__,
-			'description_callback'  => [ $this, 'get_module_description' ],
-		 ] );
-		if ( ! $is_active ) {
-			return;
-		}
-
-		// Load user specific language in the backend
-		add_filter( 'locale', [ $this, 'locale' ] );
-
-		// Add User Field for own blog language
-		add_filter( 'personal_options', [ $this, 'edit_user_profile' ] );
-		add_filter( 'profile_update', [ $this, 'profile_update' ] );
-
-		add_action( 'admin_head-options-general.php', [ $this, 'enqueue_script' ] );
-	}
-
-	/**
-	 * Get the description for this feature.
-	 *
-	 * Used in wp-admin/network/settings.php?page=mlp.
-	 *
-	 * @return string
-	 */
-	public function get_module_description() {
-
-		return __(
-			'Let each user choose a preferred language for the backend of all connected sites. Does not affect the frontend.',
-			'multilingual-press'
-		);
-	}
-
-	/**
-	 * Get the title for this feature.
-	 *
-	 * Used in wp-admin/network/settings.php?page=mlp.
-	 *
-	 * @return string
-	 */
-	public function get_module_title() {
-
-		return __( 'User Backend Language', 'multilingual-press' );
-	}
 
 	/**
 	 * Display user meta.
