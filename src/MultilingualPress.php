@@ -2,9 +2,8 @@
 
 namespace Inpsyde\MultilingualPress;
 
+use Inpsyde\MultilingualPress\Service\BootstrappableContainer;
 use Inpsyde\MultilingualPress\Service\BootableServiceProvider;
-use Inpsyde\MultilingualPress\Service\Container;
-use Inpsyde\MultilingualPress\Service\ContainerException;
 use Inpsyde\MultilingualPress\Service\ModuleServiceProvider;
 use Inpsyde\MultilingualPress\Service\ServiceProvider;
 
@@ -17,7 +16,7 @@ use Inpsyde\MultilingualPress\Service\ServiceProvider;
 class MultilingualPress {
 
 	/**
-	 * @var Container
+	 * @var BootstrappableContainer
 	 */
 	private static $container_instance;
 
@@ -27,7 +26,7 @@ class MultilingualPress {
 	private static $is_active_site;
 
 	/**
-	 * @var Container
+	 * @var BootstrappableContainer
 	 */
 	private $container;
 
@@ -54,11 +53,10 @@ class MultilingualPress {
 	 * @return mixed
 	 *
 	 * @throws \BadMethodCallException If called too early
-	 * @throws ContainerException If the requested service/value is not found or not shared
 	 */
 	public static function resolve( $name ) {
 
-		if ( ! self::$container_instance instanceof Container ) {
+		if ( ! self::$container_instance instanceof BootstrappableContainer ) {
 			throw new \BadMethodCallException(
 				sprintf( '%s can only be called after MultilingualPress has been initialised.', __METHOD__ )
 			);
@@ -68,9 +66,9 @@ class MultilingualPress {
 	}
 
 	/**
-	 * @param Container $container
+	 * @param BootstrappableContainer $container
 	 */
-	public function __construct( Container $container ) {
+	public function __construct( BootstrappableContainer $container ) {
 
 		$this->container or $this->container = $container;
 		self::$container_instance or self::$container_instance = $this->container;

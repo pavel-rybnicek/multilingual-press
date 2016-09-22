@@ -40,7 +40,7 @@ function init() {
 	$properties = new Core\Properties( $this->plugin_file_path );
 	$properties->lock();
 
-	$container = new Service\Container();
+	$container = new Service\AddOnlyContainer();
 	$container->share( 'mlp.properties', $properties );
 
 	$mlp = new MultilingualPress( $container );
