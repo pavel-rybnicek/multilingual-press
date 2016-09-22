@@ -113,8 +113,6 @@ final class AddOnlyContainer implements BootstrappableContainer {
 	 * @param string $name  The name of a value or factory callback.
 	 * @param mixed  $value The value or factory callback.
 	 *
-	 * @return void
-	 *
 	 * @throws Exception\ContainerLockedException          if the container is locked.
 	 * @throws Exception\ContainerValueAlreadySetException if there already is a value with the given name.
 	 */
@@ -124,14 +122,14 @@ final class AddOnlyContainer implements BootstrappableContainer {
 			throw Exception\ContainerLockedException::for_name( $name, 'set' );
 		}
 
+		if ( array_key_exists( $name, $this->values ) ) {
+			throw Exception\ContainerValueAlreadySetException::for_name( $name, 'set' );
+		}
+
 		if ( is_callable( $value ) ) {
 			$this->factories[ $name ] = $value;
 
 			return;
-		}
-
-		if ( array_key_exists( $name, $this->values ) ) {
-			throw Exception\ContainerValueAlreadySetException::for_name( $name, 'set' );
 		}
 
 		$this->values[ $name ] = $value;
@@ -150,8 +148,6 @@ final class AddOnlyContainer implements BootstrappableContainer {
 	 *
 	 * @param string $name The name of a value or factory callback.
 	 *
-	 * @return void
-	 *
 	 * @throws Exception\ContainerOffsetUnsetException
 	 */
 	public function offsetUnset( $name ) {
@@ -169,8 +165,6 @@ final class AddOnlyContainer implements BootstrappableContainer {
 	 *
 	 * @param string   $name        The name of an existing factory callback.
 	 * @param callable $new_factory The new factory callback.
-	 *
-	 * @return void
 	 *
 	 * @throws Exception\ContainerLockedException          if the container is locked.
 	 * @throws Exception\ContainerValueNotSetException     if there is no value or factory callback with the given name.
@@ -204,8 +198,6 @@ final class AddOnlyContainer implements BootstrappableContainer {
 	 * A locked container cannot be manipulated anymore. All stored values and factory callbacks are still accessible.
 	 *
 	 * @since 3.0.0
-	 *
-	 * @return void
 	 */
 	public function lock() {
 
@@ -218,8 +210,6 @@ final class AddOnlyContainer implements BootstrappableContainer {
 	 * Only shared values and factory callbacks are accessible from now on.
 	 *
 	 * @since 3.0.0
-	 *
-	 * @return void
 	 */
 	public function bootstrap() {
 
@@ -236,8 +226,6 @@ final class AddOnlyContainer implements BootstrappableContainer {
 	 *
 	 * @param string $name  The name of a value or factory callback.
 	 * @param mixed  $value The value or factory callback.
-	 *
-	 * @return void
 	 */
 	public function share( $name, $value ) {
 
