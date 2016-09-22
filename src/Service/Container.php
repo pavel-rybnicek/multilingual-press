@@ -19,8 +19,6 @@ interface Container extends ArrayAccess {
 	 *
 	 * @param string   $name        The name of an existing factory callback.
 	 * @param callable $new_factory The new factory callback.
-	 *
-	 * @return void
 	 */
 	public function extend( $name, callable $new_factory );
 }

@@ -14,8 +14,6 @@ interface BootstrappableContainer extends LockableContainer {
 	 * Bootstraps (and locks) the container.
 	 *
 	 * @since 3.0.0
-	 *
-	 * @return void
 	 */
 	public function bootstrap();
 
@@ -27,8 +25,6 @@ interface BootstrappableContainer extends LockableContainer {
 	 *
 	 * @param string $name  The name of a value or factory callback.
 	 * @param mixed  $value The value or factory callback.
-	 *
-	 * @return void
 	 */
 	public function share( $name, $value );
 }

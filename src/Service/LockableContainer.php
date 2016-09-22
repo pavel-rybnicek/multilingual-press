@@ -14,8 +14,6 @@ interface LockableContainer extends Container {
 	 * Locks the container.
 	 *
 	 * @since 3.0.0
-	 *
-	 * @return void
 	 */
 	public function lock();
 }
