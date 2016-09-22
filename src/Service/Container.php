@@ -93,7 +93,9 @@ final class Container implements ArrayAccess {
 		}
 
 		if ( ! array_key_exists( $name, $this->values ) ) {
-			$this->values[ $name ] = ( $this->factories[ $name ] )( $this );
+			$factory = $this->factories[ $name ];
+
+			$this->values[ $name ] = $factory( $this );
 
 			if ( $this->is_locked ) {
 				unset( $this->factories[ $name ] );
@@ -115,7 +117,8 @@ final class Container implements ArrayAccess {
 	 *
 	 * @return void
 	 *
-	 * @throws Exception\ContainerLockedException if the container is locked.
+	 * @throws Exception\ContainerLockedException          if the container is locked.
+	 * @throws Exception\ContainerValueAlreadySetException if there already is a value with the given name.
 	 */
 	public function offsetSet( $name, $value ) {
 
@@ -127,6 +130,10 @@ final class Container implements ArrayAccess {
 			$this->factories[ $name ] = $value;
 
 			return;
+		}
+
+		if ( array_key_exists( $name, $this->values ) ) {
+			throw Exception\ContainerValueAlreadySetException::for_name( $name, 'set' );
 		}
 
 		$this->values[ $name ] = $value;
