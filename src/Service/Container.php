@@ -2,213 +2,242 @@
 
 namespace Inpsyde\MultilingualPress\Service;
 
+use ArrayAccess;
+
 /**
- * @author  Giuseppe Mazzapica <giuseppe.mazzapica@gmail.com>
- * @package multilingual-press
+ * Simple service container implementation to be used for dependency management and injection.
+ *
+ * @package Inpsyde\MultilingualPress\Service
  * @since   3.0.0
  */
-final class Container implements \ArrayAccess {
+final class Container implements ArrayAccess {
 
 	/**
-	 * Holds the bitmask of current container status built using class status flags
-	 *
-	 * @var int
-	 */
-	private $status = 0;
-
-	/**
-	 * Storage for already factored object or for things that not to be factored (scalars, array and objects)
-	 *
-	 * @var array
-	 */
-	private $values = [];
-
-	/**
-	 * Storage for object factories (callbacks)
-	 *
 	 * @var callable[]
 	 */
 	private $factories = [];
 
 	/**
-	 * Array of ids of factories that are set to be shared or for scalar values.
-	 * This object can always get from container, even after it has been bootstrapped.
-	 *
-	 * @var string[]
+	 * @var bool
+	 */
+	private $is_bootstrapped = false;
+
+	/**
+	 * @var bool
+	 */
+	private $is_locked = false;
+
+	/**
+	 * @var bool[]
 	 */
 	private $shared = [];
 
 	/**
-	 * @param array $values
+	 * @var array
+	 */
+	private $values;
+
+	/**
+	 * Constructor. Sets up the properties.
+	 *
+	 * @since 3.0.0
+	 *
+	 * @param array $values Initial values or factory callbacks to be stored.
 	 */
 	public function __construct( array $values = [] ) {
 
-		( $values && ! $this->values ) and $this->values = $values;
+		if ( ! isset( $this->values ) ) {
+			$this->values = [];
+
+			foreach ( $values as $name => $value ) {
+				$this->offsetSet( $name, $value );
+			}
+		}
 	}
 
 	/**
-	 * Sets container status to locked.
+	 * Checks if a value or factory callback with the given name exists.
+	 *
+	 * @since 3.0.0
+	 *
+	 * @param string $name The name of a value or factory callback.
+	 *
+	 * @return bool Whether or not a value or factory callback with the given name exists.
 	 */
-	public function lock() {
+	public function offsetExists( $name ) {
 
-		$this->status = 1;
+		return array_key_exists( $name, $this->values ) || isset( $this->factories[ $name ] );
 	}
 
 	/**
-	 * Sets container status to bootstrapped.
+	 * Returns the value or factory callback with the given name.
+	 *
+	 * @since 3.0.0
+	 *
+	 * @param string $name The name of a value or factory callback.
+	 *
+	 * @return mixed The value or factory callback with the given name.
+	 *
+	 * @throws Exception\ContainerValueNotSetException  if there is no value or factory callback with the given name.
+	 * @throws Exception\ContainerBootstrappedException if a not shared value or factory callback is to be accessed on a
+	 *                                                  bootstrapped container.
 	 */
-	public function bootstrap() {
+	public function offsetGet( $name ) {
 
-		$this->status = 2;
+		if ( ! $this->offsetExists( $name ) ) {
+			throw Exception\ContainerValueNotSetException::for_name( $name, 'read' );
+		}
+
+		if ( $this->is_bootstrapped && ! array_key_exists( $name, $this->shared ) ) {
+			throw Exception\ContainerBootstrappedException::for_name( $name, 'read' );
+		}
+
+		if ( ! array_key_exists( $name, $this->values ) ) {
+			$this->values[ $name ] = ( $this->factories[ $name ] )( $this );
+
+			if ( $this->is_locked ) {
+				unset( $this->factories[ $name ] );
+			}
+		}
+
+		return $this->values[ $name ];
 	}
 
 	/**
-	 * Checks if given offset is available in the container either as factory or as resolved value.
+	 * Stores the given value or factory callback with the given name.
 	 *
-	 * @param string $offset
+	 * Scalar values will get shared automatically.
 	 *
-	 * @return bool
+	 * @since 3.0.0
+	 *
+	 * @param string $name  The name of a value or factory callback.
+	 * @param mixed  $value The value or factory callback.
+	 *
+	 * @return void
+	 *
+	 * @throws Exception\ContainerLockedException if the container is locked.
 	 */
-	public function offsetExists( $offset ) {
+	public function offsetSet( $name, $value ) {
 
-		if ( ! is_string( $offset ) ) {
-			throw new \InvalidArgumentException( sprintf( '%s require service id in a string.', __METHOD__ ) );
+		if ( $this->is_locked ) {
+			throw Exception\ContainerLockedException::for_name( $name, 'set' );
 		}
 
-		return array_key_exists( $offset, $this->factories ) || array_key_exists( $offset, $this->values );
-	}
-
-	/**
-	 * Returns a value from the container.
-	 *
-	 * Calling with not registered id will throw an exception.
-	 * After the container has been bootstrapped, only scalar values or shared values can be retrieved.
-	 *
-	 * @param string $offset
-	 *
-	 * @return mixed
-	 * @throws ContainerException
-	 */
-	public function offsetGet( $offset ) {
-
-		if ( ! $this->offsetExists( $offset ) ) {
-			throw ContainerException::service_not_found( $offset, 'get' );
-		}
-
-		$is_value = array_key_exists( $offset, $this->values );
-
-		// Only shared values are accessible after the container has been bootstrapped
-		if ( ! array_key_exists( $offset, $this->shared ) && $this->status > 1 ) {
-			throw ContainerException::bootstrapped_container( $offset, 'get' );
-		}
-
-		if ( $is_value ) {
-			return $this->values[ $offset ];
-		}
-
-		$factory                 = $this->factories[ $offset ];
-		$this->values[ $offset ] = $factory( $this );
-
-		// If the container is locked, we don't need anymore the factory we just used, because no one could access it
-		// nor in read nor in write mode, so we can free some memory unsetting it.
-		if ( $this->status > 0 ) {
-			unset( $this->factories[ $offset ] );
-		}
-
-		return $this->values[ $offset ];
-	}
-
-	/**
-	 * Sets a value or a factory callback in the container.
-	 * Every callable passed as value is assumed to be a factory callback.
-	 *
-	 * @param string $offset
-	 * @param mixed  $value
-	 *
-	 * @throws ContainerException
-	 */
-	public function offsetSet( $offset, $value ) {
-
-		if ( $this->status > 0 ) {
-			throw ContainerException::locked_container( $offset, 'set' );
-		}
-
-		if ( ! is_callable( $value ) ) {
-			// Scalar values are always shared
-			( is_scalar( $value ) && ! array_key_exists( $offset, $this->shared ) ) and $this->shared[] = $offset;
-			$this->values[ $offset ] = $value;
+		if ( is_callable( $value ) ) {
+			$this->factories[ $name ] = $value;
 
 			return;
 		}
 
-		$this->factories[ $offset ] = $value;
+		$this->values[ $name ] = $value;
+
+		if ( is_scalar( $value ) && ! array_key_exists( $name, $this->shared ) ) {
+			$this->shared[ $name ] = true;
+		}
 	}
 
 	/**
-	 * Removes a value or a factory callback from the container.
+	 * Removes the value or factory callback with the given name.
 	 *
-	 * @param string $offset
+	 * Removing values or factory callbacks is not allowed.
 	 *
-	 * @throws ContainerException
-	 * @throws ServiceLockedException
+	 * @since 3.0.0
+	 *
+	 * @param string $name The name of a value or factory callback.
+	 *
+	 * @return void
+	 *
+	 * @throws Exception\ContainerOffsetUnsetException
 	 */
-	public function offsetUnset( $offset ) {
+	public function offsetUnset( $name ) {
 
-		throw ContainerException::unset_disabled();
+		throw Exception\ContainerOffsetUnsetException::for_name( $name );
 	}
 
 	/**
-	 * Stores a value or a factory in the container, and mark it to be shared, so retrievable after container
-	 * is in bootstrapped status.
+	 * Stores the given value or factory callback with the given name, and defines it to be accessible even after the
+	 * container has been bootstrapped.
 	 *
-	 * @param string $offset
-	 * @param mixed  $value
+	 * @since 3.0.0
+	 *
+	 * @param string $name  The name of a value or factory callback.
+	 * @param mixed  $value The value or factory callback.
+	 *
+	 * @return void
 	 */
-	public function share( $offset, $value ) {
+	public function share( $name, $value ) {
 
-		$this->shared[] = $offset;
+		$this->offsetSet( $name, $value );
 
-		$this->offsetSet( $offset, $value );
+		$this->shared[ $name ] = true;
 	}
 
 	/**
-	 * Changes the factory of an object that was already registered with another factory callback.
+	 * Replaces the factory callback with the given name with the given factory callback.
 	 *
-	 * @param string   $offset
-	 * @param callable $new_factory
+	 * The new factory callback will receive as first argument the object created by the current factory, and as second
+	 * argument the container.
 	 *
-	 * @throws ContainerException
-	 * @throws ServiceLockedException
+	 * @since 3.0.0
+	 *
+	 * @param string   $name        The name of an existing factory callback.
+	 * @param callable $new_factory The new factory callback.
+	 *
+	 * @return void
+	 *
+	 * @throws Exception\ContainerLockedException          if the container is locked.
+	 * @throws Exception\ContainerValueNotSetException     if there is no value or factory callback with the given name.
+	 * @throws Exception\ContainerValueAlreadySetException if there already is a value with the given name.
 	 */
-	public function extend( $offset, callable $new_factory ) {
+	public function extend( $name, callable $new_factory ) {
 
-		if ( $this->status > 0 ) {
-			throw ContainerException::locked_container( $offset, 'extend' );
+		if ( $this->is_locked ) {
+			throw Exception\ContainerLockedException::for_name( $name, 'extend' );
 		}
 
-		if ( ! array_key_exists( $offset, $this->factories ) ) {
-			throw ContainerException::service_not_found( $offset, 'extend' );
+		if ( ! array_key_exists( $name, $this->factories ) ) {
+			throw Exception\ContainerValueNotSetException::for_name( $name, 'extend' );
 		}
 
-		/**
-		 * If the key is present in factories *and* in values, it means it was already resolved so we can't allow
-		 * to replace it otherwise we should also replace the "factored" value, which would break stuff.
-		 */
-		if ( array_key_exists( $offset, $this->values ) ) {
-			throw ServiceLockedException::for_service( $offset, 'extend' );
+		if ( array_key_exists( $name, $this->values ) ) {
+			throw Exception\ContainerValueAlreadySetException::for_name( $name, 'extend' );
 		}
 
-		$old_factory = $this->factories[ $offset ];
+		$current_factory = $this->factories[ $name ];
 
-		$this->factories[ $offset ] = function ( Container $container ) use ( $new_factory, $old_factory ) {
+		$this->factories[ $name ] = function ( self $container ) use ( $new_factory, $current_factory ) {
 
-			/**
-			 * The new factory receives
-			 * as 1st argument the object "factored" by the old factory and as 2nd argument the container.
-			 */
-
-			return $new_factory( $old_factory( $container ), $container );
+			return $new_factory( $current_factory( $container ), $container );
 		};
+	}
 
+	/**
+	 * Locks the container.
+	 *
+	 * A locked container cannot be manipulated anymore. All stored values and factory callbacks are still accessible.
+	 *
+	 * @since 3.0.0
+	 *
+	 * @return void
+	 */
+	public function lock() {
+
+		$this->is_locked = true;
+	}
+
+	/**
+	 * Bootstraps (and locks) the container.
+	 *
+	 * Only shared values and factory callbacks are accessible from now on.
+	 *
+	 * @since 3.0.0
+	 *
+	 * @return void
+	 */
+	public function bootstrap() {
+
+		$this->lock();
+
+		$this->is_bootstrapped = true;
 	}
 }
