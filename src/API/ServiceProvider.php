@@ -2,60 +2,68 @@
 
 namespace Inpsyde\MultilingualPress\API;
 
-use Inpsyde\MultilingualPress\Service\BootableServiceProvider;
+use Inpsyde\MultilingualPress\Service\BootstrappableServiceProvider;
 use Inpsyde\MultilingualPress\Service\Container;
 
 /**
- * Service provider for alternative language title in admin bar module.
+ * Service provider for API objects.
  *
- * @package Inpsyde\MultilingualPress\Assets
+ * @package Inpsyde\MultilingualPress\API
  * @since   3.0.0
  */
-final class ServiceProvider implements BootableServiceProvider {
+final class ServiceProvider implements BootstrappableServiceProvider {
 
 	/**
-	 * @inheritdoc
+	 * Registers the provided services on the given container.
+	 *
+	 * @since 3.0.0
+	 *
+	 * @param Container $container Container object.
 	 */
-	public function provide( Container $container ) {
+	public function register( Container $container ) {
 
-		$container[ 'mlp.language_db_access' ] = function ( Container $container ) {
+		// TODO: Move things to whereever they will belong.
+
+		$container['multilingualpress.language_db_access'] = function ( Container $container ) {
 
 			return new \Mlp_Language_Db_Access( 'mlp_languages' );
 		};
 
-		$container->share(
-			'mlp.api',
-			function ( Container $container ) {
+		$container->share( 'multilingualpress.languages', function ( Container $container ) {
 
-				return new \Mlp_Language_Api(
-					$container[ 'mlp.locations' ],
-					$container[ 'mlp.language_db_access' ],
-					'mlp_languages',
-					$container[ 'mlp.site_relations' ],
-					$container[ 'mlp.content_relations' ],
-					$GLOBALS[ 'wpdb' ]
-				);
-			}
-		);
+			// TODO: Maybe introduce a WordPressServiceProvider (for wpdb etc.)...?
 
-		return TRUE;
+			return new \Mlp_Language_Api(
+				$container['multilingualpress.locations'],
+				$container['multilingualpress.language_db_access'],
+				'mlp_languages',
+				$container['multilingualpress.site_relations'],
+				$container['multilingualpress.content_relations'],
+				$GLOBALS['wpdb']
+			);
+		} );
 	}
 
 	/**
-	 * @inheritdoc
+	 * Bootstraps the registered services.
+	 *
+	 * @since 3.0.0
+	 *
+	 * @param Container $container Container object.
 	 */
-	public function boot( Container $container ) {
+	public function bootstrap( Container $container ) {
 
-		add_action(
-			'wp_loaded',
-			function () use ( $container ) {
+		$language_db_access = $container['multilingualpress.language_db_access'];
 
-				new \Mlp_Language_Manager_Controller(
-					$container[ 'mlp.assets' ],
-					$container[ 'language_db_access' ],
-					$GLOBALS[ 'wpdb' ]
-				);
-			}
-		);
+		add_action( 'wp_loaded', function () use ( $container, $language_db_access ) {
+
+			// TODO: Make constructor not self-firing by moving hooking up actions and filters to a dedicated method.
+
+			new \Mlp_Language_Manager_Controller(
+				$container['multilingualpress.assets'],
+				$language_db_access,
+				$GLOBALS['wpdb']
+			);
+		} );
 	}
 }

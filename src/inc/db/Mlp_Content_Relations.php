@@ -34,13 +34,11 @@ class Mlp_Content_Relations implements Mlp_Content_Relations_Interface {
 	 *
 	 * @param wpdb                         $wpdb           Database object.
 	 * @param Mlp_Site_Relations_Interface $site_relations Site relations object.
-	 * @param                              $deprecated
 	 * @param string                       $link_table     Link table name.
 	 */
 	public function __construct(
 		wpdb $wpdb,
 		Mlp_Site_Relations_Interface $site_relations,
-		$deprecated,
 		$link_table
 	) {
 

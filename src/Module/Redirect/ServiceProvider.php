@@ -2,73 +2,78 @@
 
 namespace Inpsyde\MultilingualPress\Module\Redirect;
 
+use Inpsyde\MultilingualPress\Module\ActivationAwareness;
+use Inpsyde\MultilingualPress\Module\ModuleServiceProvider;
 use Inpsyde\MultilingualPress\Service\Container;
-use Inpsyde\MultilingualPress\Service\ModuleServiceProvider;
-use Inpsyde\MultilingualPress\Service\ModuleServiceProviderOnActivationTrait;
 
 /**
- * Service provider for alternative language title in admin bar module.
+ * Service provider for the Redirect module.
  *
- * @package Inpsyde\MultilingualPress\Assets
+ * @package Inpsyde\MultilingualPress\Module\Redirect
  * @since   3.0.0
  */
 final class ServiceProvider implements ModuleServiceProvider {
 
-	use ModuleServiceProviderOnActivationTrait;
-
-	const MODULE = 'redirect';
+	use ActivationAwareness;
 
 	/**
-	 * @inheritdoc
+	 * Constructor. Sets up the properties.
+	 *
+	 * @since 3.0.0
 	 */
-	public function provide( Container $container ) {
+	public function __construct() {
 
-		$container[ 'mlp.module.redirect' ] = function ( Container $container ) {
+		$this->module = 'quicklinks';
+	}
 
-			return new \Mlp_Redirect( $container[ 'mlp.api' ], NULL );
+	/**
+	 * Registers the provided services on the given container.
+	 *
+	 * @since 3.0.0
+	 *
+	 * @param Container $container Container object.
+	 */
+	public function register( Container $container ) {
+
+		$container['multilingualpress.module.redirect'] = function ( Container $container ) {
+
+			return new \Mlp_Redirect( $container['multilingualpress.languages'] );
 		};
-
-		return TRUE;
 	}
 
 	/**
-	 * @inheritdoc
+	 * Bootstraps the registered services.
+	 *
+	 * @since 3.0.0
+	 *
+	 * @param Container $container Container object.
 	 */
-	public function boot( Container $container ) {
+	public function bootstrap( Container $container ) {
 
-		$this->on_activation(
-			function () use ( $container ) {
+		$redirect = $container['multilingualpress.module.redirect'];
 
-				/** @var \Mlp_Redirect $redirect */
-				$redirect = $container[ 'mlp.module.redirect' ];
-				$redirect->setup( $this->provided_module() );
-			}
-		);
+		$this->on_activation( function () use ( $redirect ) {
 
-		return TRUE;
+			$redirect->setup( $this->module );
+		} );
 	}
 
 	/**
-	 * @inheritdoc
+	 * Registers the module at the module manager.
+	 *
+	 * @since 3.0.0
+	 *
+	 * @param \Mlp_Module_Manager_Interface $module_manager Module manager object.
+	 * @param Container                     $container      Container object.
+	 *
+	 * @return bool Whether or not the module was registerd successfully AND was activated.
 	 */
-	public function provided_module() {
+	public function register_module( \Mlp_Module_Manager_Interface $module_manager, Container $container ) {
 
-		return self::MODULE;
-	}
-
-	/**
-	 * @inheritdoc
-	 */
-	public function register_module( \Mlp_Module_Manager $module_manager, Container $container ) {
-
-		return $module_manager->register(
-			[
-				'display_name' => __( 'HTTP Redirect', 'multilingual-press' ),
-				'slug'         => 'module-' . self::MODULE,
-				'description'  => __(
-					'Redirect visitors according to browser language settings.', 'multilingual-press'
-				),
-			]
-		);
+		return $module_manager->register( [
+			'description'  => __( 'Redirect visitors according to browser language settings.', 'multilingual-press' ),
+			'display_name' => __( 'HTTP Redirect', 'multilingual-press' ),
+			'slug'         => "module-{$this->module}",
+		] );
 	}
 }

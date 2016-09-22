@@ -52,7 +52,7 @@ class Mlp_Quicklink implements Mlp_Updatable {
 	public function initialize( $module_name ) {
 
 		// Quit here if module is turned off
-		if ( ! did_action( "inpsyde_module_{$module_name}_setup" ) ) {
+		if ( ! did_action( \Mlp_Module_Manager_Interface::MODULE_ACTIVATION_ACTION_PREFIX . $module_name ) ) {
 			return;
 		}
 
@@ -126,7 +126,7 @@ class Mlp_Quicklink implements Mlp_Updatable {
 
 		// Force GET request.
 		wp_redirect( $url, 303 );
-		mlp_exit();
+		\Inpsyde\MultilingualPress\call_exit();
 	}
 
 	/**

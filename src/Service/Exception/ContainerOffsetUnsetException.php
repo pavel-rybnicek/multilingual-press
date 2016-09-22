@@ -24,7 +24,7 @@ class ContainerOffsetUnsetException extends Exception {
 	public static function for_name( $name ) {
 
 		return new static( sprintf(
-			"Cannot unset '$1%s'. Removing values or factory callbacks is not allowed.",
+			'Cannot unset "%1$s". Removing values or factory callbacks is not allowed.',
 			$name
 		) );
 	}

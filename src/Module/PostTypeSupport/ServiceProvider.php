@@ -2,86 +2,94 @@
 
 namespace Inpsyde\MultilingualPress\Module\PostTypeSupport;
 
+use Inpsyde\MultilingualPress\Module\ActivationAwareness;
+use Inpsyde\MultilingualPress\Module\ModuleServiceProvider;
 use Inpsyde\MultilingualPress\Service\Container;
-use Inpsyde\MultilingualPress\Service\ModuleServiceProvider;
-use Inpsyde\MultilingualPress\Service\ModuleServiceProviderOnActivationTrait;
 
 /**
- * Service provider for alternative language title in admin bar module.
+ * Service provider for the Post Type Support module.
  *
- * @package Inpsyde\MultilingualPress\Assets
+ * @package Inpsyde\MultilingualPress\Module\PostTypeSupport
  * @since   3.0.0
  */
 final class ServiceProvider implements ModuleServiceProvider {
 
-	use ModuleServiceProviderOnActivationTrait;
-
-	const MODULE = 'cpt_support';
+	use ActivationAwareness;
 
 	/**
-	 * @inheritdoc
+	 * Constructor. Sets up the properties.
+	 *
+	 * @since 3.0.0
 	 */
-	public function provide( Container $container ) {
+	public function __construct() {
 
-		$container[ 'mlp.module.cpt_support' ] = function () {
+		$this->module = 'post_type_support';
+	}
+
+	/**
+	 * Registers the provided services on the given container.
+	 *
+	 * @since 3.0.0
+	 *
+	 * @param Container $container Container object.
+	 */
+	public function register( Container $container ) {
+
+		$container['multilingualpress.module.post_type_support'] = function () {
 
 			return new \Mlp_Cpt_Translator();
 		};
-
-		return TRUE;
 	}
 
 	/**
-	 * @inheritdoc
+	 * Bootstraps the registered services.
+	 *
+	 * @since 3.0.0
+	 *
+	 * @param Container $container Container object.
 	 */
-	public function boot( Container $container ) {
+	public function bootstrap( Container $container ) {
 
-		$this->on_activation(
-			function () use ( $container ) {
+		$post_type_support = $container['multilingualpress.module.post_type_support'];
 
-				$cpt_support = $container[ 'mlp.module.cpt_support' ];
+		$this->on_activation( function () use ( $post_type_support ) {
 
-				add_filter( 'mlp_allowed_post_types', [ $cpt_support, 'filter_allowed_post_types' ] );
+			add_filter( 'mlp_allowed_post_types', [ $post_type_support, 'filter_allowed_post_types' ] );
 
-				add_action( 'mlp_modules_add_fields', [ $cpt_support, 'draw_options_page_form_fields' ] );
-				// Use this hook to handle the user input of your modules' options page form fields
-				add_action( 'mlp_modules_save_fields', [ $cpt_support, 'save_options_page_form_fields' ] );
+			add_action( 'mlp_modules_add_fields', [ $post_type_support, 'draw_options_page_form_fields' ] );
 
-				// replace the permalink if selected
-				add_action( 'mlp_before_link', [ $cpt_support, 'before_mlp_link' ] );
-				add_action( 'mlp_after_link', [ $cpt_support, 'after_mlp_link' ] );
-			}
-		);
+			// Use this hook to handle the user input of your modules' options page form fields.
+			add_action( 'mlp_modules_save_fields', [ $post_type_support, 'save_options_page_form_fields' ] );
 
-		return TRUE;
+			// Replace the permalink if selected.
+			add_action( 'mlp_before_link', [ $post_type_support, 'before_mlp_link' ] );
+			add_action( 'mlp_after_link', [ $post_type_support, 'after_mlp_link' ] );
+		} );
 	}
 
 	/**
-	 * @inheritdoc
+	 * Registers the module at the module manager.
+	 *
+	 * @since 3.0.0
+	 *
+	 * @param \Mlp_Module_Manager_Interface $module_manager Module manager object.
+	 * @param Container                     $container      Container object.
+	 *
+	 * @return bool Whether or not the module was registerd successfully AND was activated.
 	 */
-	public function provided_module() {
+	public function register_module( \Mlp_Module_Manager_Interface $module_manager, Container $container ) {
 
-		return self::MODULE;
-	}
+		$post_type_support = $container['multilingualpress.module.post_type_support'];
 
-	/**
-	 * @inheritdoc
-	 */
-	public function register_module( \Mlp_Module_Manager $module_manager, Container $container ) {
-
-		$cpt_support = $container[ 'mlp.module.cpt_support' ];
-
-		return $module_manager->register(
-			[
-				'description'  => __(
-					'Enable translation of custom post types. Creates a second settings box below this. The post types must be activated for the whole network or on the main site.',
-					'multilingual-press'
-				),
-				'display_name' => __( 'Custom Post Type Translator', 'multilingual-press' ),
-				'slug'         => 'module-' . self::MODULE,
-				'state'        => 'off',
-				'callback'     => [ $cpt_support, 'extend_settings_description' ],
-			]
-		);
+		return $module_manager->register( [
+			'description'  => __(
+				'Enable translation of custom post types. Creates a second settings box below this. The post types must be activated for the whole network or on the main site.',
+				'multilingual-press'
+			),
+			'display_name' => __( 'Custom Post Type Translator', 'multilingual-press' ),
+			'slug'         => "module-{$this->module}",
+			'state'        => 'off',
+			'callback'     => [ $post_type_support, 'extend_settings_description' ],
+		] );
 	}
 }

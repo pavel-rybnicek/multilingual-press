@@ -37,11 +37,19 @@ add_action( 'plugins_loaded', __NAMESPACE__ . '\\init', 0 );
  */
 function init() {
 
-	$properties = new Core\Properties( $this->plugin_file_path );
+	$properties = new Core\Properties( __FILE__ );
 	$properties->lock();
 
 	$container = new Service\AddOnlyContainer();
-	$container->share( 'mlp.properties', $properties );
+	$container->share( 'multilingualpress.properties', $properties );
+
+	// REMOVE as soon as autoloading is set up - START
+	$plugin_path = plugin_dir_path( __FILE__ );
+	if ( ! class_exists( 'Mlp_Load_Controller' ) ) {
+		require $plugin_path . 'src/inc/autoload/Mlp_Load_Controller.php';
+	}
+	new \Mlp_Load_Controller( $plugin_path . 'src/inc' );
+	// REMOVE as soon as autoloading is set up - END
 
 	$mlp = new MultilingualPress( $container );
 	$mlp
@@ -50,10 +58,10 @@ function init() {
 		->add_service_provider( new API\ServiceProvider() )
 		->add_service_provider( new Core\FeaturesServiceProvider() )
 		->add_service_provider( new Core\TranslationMetaboxServiceProvider() )
+		->add_service_provider( new Module\AdvancedTranslator\ServiceProvider() )
 		->add_service_provider( new Module\AlternativeLanguageTitleInAdminBar\ServiceProvider() )
 		->add_service_provider( new Module\Quicklinks\ServiceProvider() )
 		->add_service_provider( new Module\Redirect\ServiceProvider() )
-		->add_service_provider( new Module\Translation\ServiceProvider() )
 		->add_service_provider( new Module\PostTypeSupport\ServiceProvider() )
 		->add_service_provider( new Module\Trasher\ServiceProvider() )
 		->add_service_provider( new Module\UserAdminLanguage\ServiceProvider() );
@@ -62,7 +70,7 @@ function init() {
 	 * Functions require things in the provider, so it needs to be fully provided to functions work.
 	 * Providing happens in the moment a provider is added, so here is the first place safe enough to require functions.
 	 */
-	require_once __DIR__ . 'src/inc/functions.php';
+	require_once __DIR__ . '/src/inc/functions.php';
 
 	/**
 	 * Fires after core providers have been added.
@@ -80,7 +88,7 @@ function init() {
 
 	if ( $check_ok && $site_relations instanceof \Mlp_Site_Relations_Interface ) {
 
-		$container->share( 'mlp.site_relations', $site_relations );
+		$container->share( 'multilingualpress.site_relations', $site_relations );
 
 		$mlp->bootstrap();
 	}

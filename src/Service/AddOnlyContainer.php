@@ -2,13 +2,19 @@
 
 namespace Inpsyde\MultilingualPress\Service;
 
+use Inpsyde\MultilingualPress\Service\Exception\ContainerBootstrappedException;
+use Inpsyde\MultilingualPress\Service\Exception\ContainerLockedException;
+use Inpsyde\MultilingualPress\Service\Exception\ContainerOffsetUnsetException;
+use Inpsyde\MultilingualPress\Service\Exception\ContainerValueAlreadySetException;
+use Inpsyde\MultilingualPress\Service\Exception\ContainerValueNotSetException;
+
 /**
- * Simple add-only service container implementation to be used for dependency management.
+ * Simple add-only container implementation to be used for dependency management.
  *
  * @package Inpsyde\MultilingualPress\Service
  * @since   3.0.0
  */
-final class AddOnlyContainer implements BootstrappableContainer {
+final class AddOnlyContainer implements Container {
 
 	/**
 	 * @var callable[]
@@ -76,18 +82,18 @@ final class AddOnlyContainer implements BootstrappableContainer {
 	 *
 	 * @return mixed The value or factory callback with the given name.
 	 *
-	 * @throws Exception\ContainerValueNotSetException  if there is no value or factory callback with the given name.
-	 * @throws Exception\ContainerBootstrappedException if a not shared value or factory callback is to be accessed on a
-	 *                                                  bootstrapped container.
+	 * @throws ContainerValueNotSetException  if there is no value or factory callback with the given name.
+	 * @throws ContainerBootstrappedException if a not shared value or factory callback is to be accessed on a
+	 *                                        bootstrapped container.
 	 */
 	public function offsetGet( $name ) {
 
 		if ( ! $this->offsetExists( $name ) ) {
-			throw Exception\ContainerValueNotSetException::for_name( $name, 'read' );
+			throw ContainerValueNotSetException::for_name( $name, 'read' );
 		}
 
 		if ( $this->is_bootstrapped && ! array_key_exists( $name, $this->shared ) ) {
-			throw Exception\ContainerBootstrappedException::for_name( $name, 'read' );
+			throw ContainerBootstrappedException::for_name( $name, 'read' );
 		}
 
 		if ( ! array_key_exists( $name, $this->values ) ) {
@@ -113,17 +119,17 @@ final class AddOnlyContainer implements BootstrappableContainer {
 	 * @param string $name  The name of a value or factory callback.
 	 * @param mixed  $value The value or factory callback.
 	 *
-	 * @throws Exception\ContainerLockedException          if the container is locked.
-	 * @throws Exception\ContainerValueAlreadySetException if there already is a value with the given name.
+	 * @throws ContainerLockedException          if the container is locked.
+	 * @throws ContainerValueAlreadySetException if there already is a value with the given name.
 	 */
 	public function offsetSet( $name, $value ) {
 
 		if ( $this->is_locked ) {
-			throw Exception\ContainerLockedException::for_name( $name, 'set' );
+			throw ContainerLockedException::for_name( $name, 'set' );
 		}
 
 		if ( array_key_exists( $name, $this->values ) ) {
-			throw Exception\ContainerValueAlreadySetException::for_name( $name, 'set' );
+			throw ContainerValueAlreadySetException::for_name( $name, 'set' );
 		}
 
 		if ( is_callable( $value ) ) {
@@ -148,11 +154,11 @@ final class AddOnlyContainer implements BootstrappableContainer {
 	 *
 	 * @param string $name The name of a value or factory callback.
 	 *
-	 * @throws Exception\ContainerOffsetUnsetException
+	 * @throws ContainerOffsetUnsetException
 	 */
 	public function offsetUnset( $name ) {
 
-		throw Exception\ContainerOffsetUnsetException::for_name( $name );
+		throw ContainerOffsetUnsetException::for_name( $name );
 	}
 
 	/**
@@ -166,22 +172,22 @@ final class AddOnlyContainer implements BootstrappableContainer {
 	 * @param string   $name        The name of an existing factory callback.
 	 * @param callable $new_factory The new factory callback.
 	 *
-	 * @throws Exception\ContainerLockedException          if the container is locked.
-	 * @throws Exception\ContainerValueNotSetException     if there is no value or factory callback with the given name.
-	 * @throws Exception\ContainerValueAlreadySetException if there already is a value with the given name.
+	 * @throws ContainerLockedException          if the container is locked.
+	 * @throws ContainerValueNotSetException     if there is no value or factory callback with the given name.
+	 * @throws ContainerValueAlreadySetException if there already is a value with the given name.
 	 */
 	public function extend( $name, callable $new_factory ) {
 
 		if ( $this->is_locked ) {
-			throw Exception\ContainerLockedException::for_name( $name, 'extend' );
+			throw ContainerLockedException::for_name( $name, 'extend' );
 		}
 
 		if ( ! array_key_exists( $name, $this->factories ) ) {
-			throw Exception\ContainerValueNotSetException::for_name( $name, 'extend' );
+			throw ContainerValueNotSetException::for_name( $name, 'extend' );
 		}
 
 		if ( array_key_exists( $name, $this->values ) ) {
-			throw Exception\ContainerValueAlreadySetException::for_name( $name, 'extend' );
+			throw ContainerValueAlreadySetException::for_name( $name, 'extend' );
 		}
 
 		$current_factory = $this->factories[ $name ];

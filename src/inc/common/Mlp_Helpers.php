@@ -283,7 +283,7 @@ class Mlp_Helpers {
 			return Error::create( 'mlp_empty_custom_hook', __( 'Invalid Hook', 'multilingual-press' ) );
 
 		// set the current element in the mlp class
-		$languages    = mlp_get_available_languages();
+		$languages    = \Inpsyde\MultilingualPress\get_available_languages();
 		$current_blog_id = get_current_blog_id();
 
 		if ( 0 == count( $languages ) )

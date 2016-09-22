@@ -94,7 +94,7 @@ final class DebugAwareURL implements URL {
 	 */
 	private function get_file( $file, $dir_path ) {
 
-		if ( mlp_is_script_debug_mode() ) {
+		if ( \Inpsyde\MultilingualPress\is_script_debug_mode() ) {
 			return $file;
 		}
 

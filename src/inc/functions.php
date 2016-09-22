@@ -23,7 +23,7 @@ function get_default_content_id( $content_id = 0 ) {
  *
  * @return void
  */
-function exit_now( $status = '' ) {
+function call_exit( $status = '' ) {
 
 	exit( $status );
 }
@@ -114,7 +114,7 @@ function get_available_languages( $not_related = FALSE ) {
 	}
 
 	/** @var \Mlp_Site_Relations_Interface $site_relations */
-	$site_relations = MultilingualPress::resolve( 'mlp.site_relations' );
+	$site_relations = MultilingualPress::resolve( 'multilingualpress.site_relations' );
 
 	// Do we need related blogs only?
 	if ( FALSE === $not_related ) {
@@ -159,7 +159,7 @@ function get_available_languages( $not_related = FALSE ) {
 function get_available_languages_titles( $related = TRUE ) {
 
 	/** @var \Mlp_Language_Api $api */
-	$api  = MultilingualPress::resolve( 'mlp.api' );
+	$api  = MultilingualPress::resolve( 'multilingualpress.languages' );
 	$blog = $related ? get_current_blog_id() : 0;
 
 	return $api->get_site_languages( $blog );
@@ -192,7 +192,7 @@ function get_linked_elements( $element_id = 0, $type = '', $blog_id = 0 ) {
 	}
 
 	/** @var \Mlp_Language_Api $api */
-	$api = MultilingualPress::resolve( 'mlp.api' );
+	$api = MultilingualPress::resolve( 'multilingualpress.languages' );
 
 	return $api->get_related_content_ids( $blog_id, $element_id, $type );
 }
@@ -269,7 +269,7 @@ function get_language_flag( $site_id = 0 ) {
 	}
 
 	/** @var \Mlp_Language_Api $api */
-	$api = MultilingualPress::resolve( 'mlp.api' );
+	$api = MultilingualPress::resolve( 'multilingualpress.languages' );
 
 	return (string) $api->get_flag_by_language( $languages[ $site_id ], $site_id );
 }
@@ -317,7 +317,7 @@ function get_linked_elements_list( $args ) {
 			break;
 	}
 
-	$api = MultilingualPress::resolve( 'mlp.api' );
+	$api = MultilingualPress::resolve( 'multilingualpress.languages' );
 
 	$translations_args = [
 		'strict'       => $params[ 'strict' ],
@@ -408,7 +408,7 @@ function show_linked_elements( array $args ) {
 	];
 
 	$params = wp_parse_args( $args, $defaults );
-	$output = get_linked_elements( $params );
+	$output = get_linked_elements_list( $params );
 
 	$echo = isset( $params[ 'echo' ] ) ? $params[ 'echo' ] : TRUE;
 	if ( $echo ) {
@@ -434,7 +434,7 @@ function get_interlinked_permalinks( $element_id = 0 ) {
 
 	$return = [];
 	/** @var \Mlp_Language_Api $api */
-	$api = MultilingualPress::resolve( 'mlp.api' );
+	$api = MultilingualPress::resolve( 'multilingualpress.languages' );
 
 	$site_id    = get_current_blog_id();
 
@@ -522,7 +522,7 @@ function get_blog_language( $site_id = 0, $short = TRUE ) {
 function get_lang_by_iso( $iso, $field = 'native_name' ) {
 
 	/** @var \Mlp_Language_Api $api */
-	$api  = MultilingualPress::resolve( 'mlp.api');
+	$api  = MultilingualPress::resolve( 'multilingualpress.languages');
 
 	return $api->get_lang_data_by_iso( $iso, $field );
 }

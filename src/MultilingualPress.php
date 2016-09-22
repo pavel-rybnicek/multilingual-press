@@ -2,10 +2,10 @@
 
 namespace Inpsyde\MultilingualPress;
 
-use Inpsyde\MultilingualPress\Service\BootstrappableContainer;
-use Inpsyde\MultilingualPress\Service\BootableServiceProvider;
-use Inpsyde\MultilingualPress\Service\ModuleServiceProvider;
+use Inpsyde\MultilingualPress\Service\Container;
+use Inpsyde\MultilingualPress\Service\BootstrappableServiceProvider;
 use Inpsyde\MultilingualPress\Service\ServiceProvider;
+use Inpsyde\MultilingualPress\Module\ModuleServiceProvider;
 
 /**
  * Kind of a front controller.
@@ -16,7 +16,7 @@ use Inpsyde\MultilingualPress\Service\ServiceProvider;
 class MultilingualPress {
 
 	/**
-	 * @var BootstrappableContainer
+	 * @var Container
 	 */
 	private static $container_instance;
 
@@ -26,12 +26,12 @@ class MultilingualPress {
 	private static $is_active_site;
 
 	/**
-	 * @var BootstrappableContainer
+	 * @var Container
 	 */
 	private $container;
 
 	/**
-	 * @var BootableServiceProvider[]
+	 * @var BootstrappableServiceProvider[]
 	 */
 	private $bootable = [];
 
@@ -56,7 +56,7 @@ class MultilingualPress {
 	 */
 	public static function resolve( $name ) {
 
-		if ( ! self::$container_instance instanceof BootstrappableContainer ) {
+		if ( ! self::$container_instance instanceof Container ) {
 			throw new \BadMethodCallException(
 				sprintf( '%s can only be called after MultilingualPress has been initialised.', __METHOD__ )
 			);
@@ -66,9 +66,9 @@ class MultilingualPress {
 	}
 
 	/**
-	 * @param BootstrappableContainer $container
+	 * @param Container $container
 	 */
-	public function __construct( BootstrappableContainer $container ) {
+	public function __construct( Container $container ) {
 
 		$this->container or $this->container = $container;
 		self::$container_instance or self::$container_instance = $this->container;
@@ -83,8 +83,8 @@ class MultilingualPress {
 	 */
 	public function add_service_provider( ServiceProvider $provider ) {
 
-		$provider->provide( $this->container );
-		$provider instanceof BootableServiceProvider and $this->bootable[] = $provider;
+		$provider->register( $this->container );
+		$provider instanceof BootstrappableServiceProvider and $this->bootable[] = $provider;
 		$provider instanceof ModuleServiceProvider and $this->modules[] = $provider;
 
 		return $this;
@@ -111,44 +111,34 @@ class MultilingualPress {
 		// Every bootable module is now booted.
 		array_walk(
 			$this->bootable,
-			function ( BootableServiceProvider $provider, $index, $is_active ) {
+			function ( BootstrappableServiceProvider $provider, $index, $is_active ) {
 
 				// In case site is not active, we skip the boot of modules
 				$is_module = $provider instanceof ModuleServiceProvider;
-				( $is_active || ! $is_module ) and $provider->boot( $this->container );
+				( $is_active || ! $is_module ) and $provider->bootstrap( $this->container );
 			},
 			$is_active
 		);
 
 		unset( $this->bootable );
 
-		// In case site is not active, there's nothing else to do
-		if ( ! $is_active ) {
-			$this->bootstrapped = TRUE;
+		if ( $is_active ) {
+			/**
+			 * Runs before `inpsyde_mlp_loaded`.
+			 * For things that needs to happen before 'inpsyde_mlp_loaded'.
+			 */
+			do_action( 'inpsyde_mlp_init' );
 
-			return;
+			/**
+			 * Runs after everything in core has been loaded and booted.
+			 */
+			do_action( 'inpsyde_mlp_loaded' );
+
+			// Register all modules
+			$this->register_modules();
 		}
 
-		// Let's retrieve the instance of module manager to setup modules
-		$module_manager = $this->container[ 'mlp.modules_manager' ];
-		// ...ensuring it is the proper interface
-		if ( ! $module_manager instanceof \Mlp_Module_Manager_Interface ) {
-			throw new \RuntimeException( 'It was not possible to resolve MultilingualPress module manager instance.' );
-		}
-
-		/**
-		 * Runs before `inpsyde_mlp_loaded`.
-		 * For things that needs to happen before 'inpsyde_mlp_loaded'.
-		 */
-		do_action( 'inpsyde_mlp_init' );
-
-		/**
-		 * Runs after everything in core has been loaded and booted.
-		 */
-		do_action( 'inpsyde_mlp_loaded' );
-
-		// Register all modules
-		$this->register_modules();
+		unset( $this->modules );
 
 		// From this point on, only shared elements can be get from the container by using MultilingualPress::resolve()
 		$this->container->bootstrap();
@@ -162,13 +152,18 @@ class MultilingualPress {
 	 */
 	private function register_modules() {
 
+		// Let's retrieve the instance of module manager to setup modules
+		$module_manager = $this->container['multilingualpress.module_manager'];
+		// ...ensuring it is the proper interface
+		if ( ! $module_manager instanceof \Mlp_Module_Manager_Interface ) {
+			throw new \RuntimeException( 'It was not possible to resolve MultilingualPress module manager instance.' );
+		}
+
 		array_walk(
 			$this->modules,
-			function ( ModuleServiceProvider $provider, $index, \Mlp_Module_Manager $module_manager ) {
+			function ( ModuleServiceProvider $provider, $index, \Mlp_Module_Manager_Interface $module_manager ) {
 
 				if ( $provider->register_module( $module_manager, $this->container ) ) {
-
-					$module = $provider->provided_module();
 
 					/**
 					 * Fires after a module has been setup in the module manager and it is enabled.
@@ -178,13 +173,11 @@ class MultilingualPress {
 					 * we should probably introduce an interface for modules with a setter method that let us set
 					 * the enabled status from here.
 					 */
-					do_action( "inpsyde_module_{$module}_activated" );
+					do_action( \Mlp_Module_Manager_Interface::MODULE_ACTIVATION_ACTION_PREFIX . $provider->module() );
 				}
 			},
 			$module_manager
 		);
-
-		unset( $this->modules );
 	}
 
 	/**

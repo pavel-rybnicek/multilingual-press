@@ -25,7 +25,7 @@ class ContainerBootstrappedException extends Exception {
 	public static function for_name( $name, $action = 'read' ) {
 
 		return new static( sprintf(
-			"Cannot $2%s not shared '$1%s'. The container has already been bootstrapped.",
+			'Cannot %2$s not shared "%1$s". The container has already been bootstrapped.',
 			$name,
 			trim( $action )
 		) );

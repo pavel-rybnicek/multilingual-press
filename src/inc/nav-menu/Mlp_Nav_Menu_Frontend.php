@@ -80,7 +80,7 @@ class Mlp_Nav_Menu_Frontend {
 			return false;
 		}
 
-		if ( blog_exists( $site_id ) ) {
+		if ( \Inpsyde\MultilingualPress\blog_exists( $site_id ) ) {
 			return false;
 		}
 

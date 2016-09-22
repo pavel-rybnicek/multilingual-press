@@ -25,7 +25,7 @@ class ContainerValueNotSetException extends Exception {
 	public static function for_name( $name, $action = 'read' ) {
 
 		return new static( sprintf(
-			"Cannot $2%s '$1%s'. There is no value or factory callback with this name.",
+			'Cannot %2$s "%1$s". There is no value or factory callback with this name.',
 			$name,
 			trim( $action )
 		) );

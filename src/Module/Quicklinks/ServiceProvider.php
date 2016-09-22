@@ -2,72 +2,82 @@
 
 namespace Inpsyde\MultilingualPress\Module\Quicklinks;
 
+use Inpsyde\MultilingualPress\Module\ActivationAwareness;
+use Inpsyde\MultilingualPress\Module\ModuleServiceProvider;
 use Inpsyde\MultilingualPress\Service\Container;
-use Inpsyde\MultilingualPress\Service\ModuleServiceProvider;
-use Inpsyde\MultilingualPress\Service\ModuleServiceProviderOnActivationTrait;
 
 /**
- * Service provider for alternative language title in admin bar module.
+ * Service provider for the Quicklinks module.
  *
- * @package Inpsyde\MultilingualPress\Assets
+ * @package Inpsyde\MultilingualPress\Module\Quicklinks
  * @since   3.0.0
  */
 final class ServiceProvider implements ModuleServiceProvider {
 
-	use ModuleServiceProviderOnActivationTrait;
-
-	const MODULE = 'quicklinks';
+	use ActivationAwareness;
 
 	/**
-	 * @inheritdoc
+	 * Constructor. Sets up the properties.
+	 *
+	 * @since 3.0.0
 	 */
-	public function provide( Container $container ) {
+	public function __construct() {
 
-		$container[ 'mlp.module.quicklinks' ] = function ( Container $container ) {
+		$this->module = 'quicklinks';
+	}
 
-			return new \Mlp_Quicklink( $container[ 'mlp.api' ], $container[ 'mlp.assets' ] );
+	/**
+	 * Registers the provided services on the given container.
+	 *
+	 * @since 3.0.0
+	 *
+	 * @param Container $container Container object.
+	 */
+	public function register( Container $container ) {
+
+		$container['multilingualpress.module.quicklinks'] = function ( Container $container ) {
+
+			return new \Mlp_Quicklink(
+				$container['multilingualpress.languages'],
+				$container['multilingualpress.assets']
+			);
 		};
-
-		return TRUE;
 	}
 
 	/**
-	 * @inheritdoc
+	 * Bootstraps the registered services.
+	 *
+	 * @since 3.0.0
+	 *
+	 * @param Container $container Container object.
 	 */
-	public function boot( Container $container ) {
+	public function bootstrap( Container $container ) {
 
-		$this->on_activation(
-			function () use ( $container ) {
+		$quicklinks = $container['multilingualpress.module.quicklinks'];
 
-				/** @var \Mlp_Quicklink $quicklinks */
-				$quicklinks = $container[ 'mlp.module.quicklinks' ];
-				$quicklinks->initialize( $this->provided_module() );
-			}
-		);
+		$this->on_activation( function () use ( $quicklinks ) {
 
-		return TRUE;
+			$quicklinks->initialize( $this->module );
+		} );
 	}
 
 	/**
-	 * @inheritdoc
+	 * Registers the module at the module manager.
+	 *
+	 * @since 3.0.0
+	 *
+	 * @param \Mlp_Module_Manager_Interface $module_manager Module manager object.
+	 * @param Container                     $container      Container object.
+	 *
+	 * @return bool Whether or not the module was registerd successfully AND was activated.
 	 */
-	public function provided_module() {
+	public function register_module( \Mlp_Module_Manager_Interface $module_manager, Container $container ) {
 
-		return self::MODULE;
-	}
-
-	/**
-	 * @inheritdoc
-	 */
-	public function register_module( \Mlp_Module_Manager $module_manager, Container $container ) {
-
-		return $module_manager->register(
-			[
-				'description'  => __( 'Show link to translations in post content.', 'multilingual-press' ),
-				'display_name' => __( 'Quicklink', 'multilingual-press' ),
-				'slug'         => 'module-' . self::MODULE,
-				'state'        => 'off',
-			]
-		);
+		return $module_manager->register( [
+			'description'  => __( 'Show link to translations in post content.', 'multilingual-press' ),
+			'display_name' => __( 'Quicklink', 'multilingual-press' ),
+			'slug'         => "module-{$this->module}",
+			'state'        => 'off',
+		] );
 	}
 }

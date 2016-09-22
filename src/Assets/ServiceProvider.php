@@ -2,53 +2,59 @@
 
 namespace Inpsyde\MultilingualPress\Assets;
 
-use Inpsyde\MultilingualPress\Service\BootableServiceProvider;
+use Inpsyde\MultilingualPress\Service\BootstrappableServiceProvider;
 use Inpsyde\MultilingualPress\Service\Container;
-use Inpsyde\MultilingualPress\Service\ContainerException;
 
 /**
- * Service provider for internal locations object.
+ * Service provider for Assets objects.
  *
  * @package Inpsyde\MultilingualPress\Assets
  * @since   3.0.0
  */
-final class ServiceProvider implements BootableServiceProvider {
+final class ServiceProvider implements BootstrappableServiceProvider {
 
 	/**
-	 * @param Container $container
+	 * Registers the provided services on the given container.
 	 *
-	 * @return bool
-	 * @throws ContainerException
+	 * @since 3.0.0
+	 *
+	 * @param Container $container Container object.
 	 */
-	public function provide( Container $container ) {
+	public function register( Container $container ) {
 
-		$container->share(
-			'mlp.assets',
-			function ( Container $container ) {
+		$container->share( 'multilingualpress.assets', function ( Container $container ) {
 
-				return new \Mlp_Assets( $container[ 'mlp.internal_locations' ] );
-			}
-		);
-
-		return TRUE;
+			return new \Mlp_Assets( $container['multilingualpress.locations'] );
+		} );
 	}
 
 	/**
-	 * @inheritdoc
+	 * Bootstraps the registered services.
+	 *
+	 * @since 3.0.0
+	 *
+	 * @param Container $container Container object.
 	 */
-	public function boot( Container $container ) {
+	public function bootstrap( Container $container ) {
 
-		/** @type \Mlp_Assets $assets */
-		$assets = $container[ 'mlp.assets' ];
+		$assets = $container['multilingualpress.assets'];
 
-		$admin_url = esc_url( parse_url( admin_url(), PHP_URL_PATH ) );
-		$assets->add( 'mlp-admin', 'admin.js', [ 'backbone' ], [ 'mlpSettings' => [ 'urlRoot' => $admin_url, ], ] );
+		$assets->add(
+			'mlp-admin',
+			'admin.js',
+			[
+				'backbone',
+			],
+			[
+				'mlpSettings' => [
+					'urlRoot' => esc_url( parse_url( admin_url(), PHP_URL_PATH ) ),
+				],
+			]
+		);
 		$assets->add( 'mlp_admin_css', 'admin.css' );
 		$assets->add( 'mlp-frontend', 'frontend.js' );
 		$assets->add( 'mlp_frontend_css', 'frontend.css' );
 
 		add_action( 'init', [ $assets, 'register' ], 0 );
-
-		return TRUE;
 	}
 }

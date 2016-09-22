@@ -34,7 +34,7 @@ class Mlp_Redirect {
 	public function setup( $module_name ) {
 
 		// Quit here if module is turned off
-		if ( ! did_action( "inpsyde_module_{$module_name}_setup" ) ) {
+		if ( ! did_action( \Mlp_Module_Manager_Interface::MODULE_ACTIVATION_ACTION_PREFIX . $module_name ) ) {
 			return FALSE;
 		}
 

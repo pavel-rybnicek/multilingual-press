@@ -58,7 +58,7 @@ class Mlp_Language_Nav_Menu_Data implements Mlp_Nav_Menu_Selector_Data_Interface
 	 */
 	public function get_list() {
 
-		return mlp_get_available_languages_titles( true );
+		return \Inpsyde\MultilingualPress\get_available_languages_titles( true );
 	}
 
 	/**
@@ -125,7 +125,7 @@ class Mlp_Language_Nav_Menu_Data implements Mlp_Nav_Menu_Selector_Data_Interface
 			return [];
 		}
 
-		$titles = mlp_get_available_languages_titles( true );
+		$titles = \Inpsyde\MultilingualPress\get_available_languages_titles( true );
 
 		return $this->prepare_menu_items( $titles );
 	}
@@ -183,7 +183,7 @@ class Mlp_Language_Nav_Menu_Data implements Mlp_Nav_Menu_Selector_Data_Interface
 	 */
 	private function is_valid_blog_id( array $titles, $blog_id ) {
 
-		return isset( $titles[ $blog_id ] ) && blog_exists( $blog_id );
+		return isset( $titles[ $blog_id ] ) && \Inpsyde\MultilingualPress\blog_exists( $blog_id );
 	}
 
 	/**

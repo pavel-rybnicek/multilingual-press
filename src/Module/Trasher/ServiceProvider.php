@@ -2,82 +2,86 @@
 
 namespace Inpsyde\MultilingualPress\Module\Trasher;
 
+use Inpsyde\MultilingualPress\Module\ActivationAwareness;
+use Inpsyde\MultilingualPress\Module\ModuleServiceProvider;
 use Inpsyde\MultilingualPress\Service\Container;
-use Inpsyde\MultilingualPress\Service\ModuleServiceProvider;
-use Inpsyde\MultilingualPress\Service\ModuleServiceProviderOnActivationTrait;
 
 /**
- * Service provider for alternative language title in admin bar module.
+ * Service provider for the Trasher module.
  *
- * @package Inpsyde\MultilingualPress\Assets
+ * @package Inpsyde\MultilingualPress\Module\Trasher
  * @since   3.0.0
  */
 final class ServiceProvider implements ModuleServiceProvider {
 
-	use ModuleServiceProviderOnActivationTrait;
-
-	const MODULE = 'trasher';
+	use ActivationAwareness;
 
 	/**
-	 * @inheritdoc
+	 * Constructor. Sets up the properties.
+	 *
+	 * @since 3.0.0
 	 */
-	public function provide( Container $container ) {
+	public function __construct() {
 
-		$container[ 'mlp.module.trasher' ] = function () {
+		$this->module = 'trasher';
+	}
 
-			new \Mlp_Trasher();
+	/**
+	 * Registers the provided services on the given container.
+	 *
+	 * @since 3.0.0
+	 *
+	 * @param Container $container Container object.
+	 */
+	public function register( Container $container ) {
 
+		$container['multilingualpress.module.trasher'] = function () {
+
+			return new \Mlp_Trasher();
 		};
-
-		return TRUE;
 	}
 
 	/**
-	 * @inheritdoc
+	 * Bootstraps the registered services.
+	 *
+	 * @since 3.0.0
+	 *
+	 * @param Container $container Container object.
 	 */
-	public function boot( Container $container ) {
+	public function bootstrap( Container $container ) {
 
-		$on_activation_callable = function () use ( $container ) {
+		$trasher = $container['multilingualpress.module.trasher'];
 
-			add_action(
-				'mlp_and_wp_loaded',
-				function () use ( $container ) {
+		$this->on_activation( function () use ( $trasher ) {
 
-					$trasher = $container[ 'mlp.module.trasher' ];
-					add_action( 'post_submitbox_misc_actions', [ $trasher, 'post_submitbox_misc_actions' ] );
-					add_action( 'wp_trash_post', [ $trasher, 'trash_post' ] );
-					add_action( 'save_post', [ $trasher, 'save_post' ] );
-				}
-			);
-		};
+			add_action( 'mlp_and_wp_loaded', function () use ( $trasher ) {
 
-		$this->on_activation( $on_activation_callable );
-
-		return TRUE;
+				add_action( 'post_submitbox_misc_actions', [ $trasher, 'post_submitbox_misc_actions' ] );
+				add_action( 'wp_trash_post', [ $trasher, 'trash_post' ] );
+				add_action( 'save_post', [ $trasher, 'save_post' ] );
+			} );
+		} );
 	}
 
 	/**
-	 * @inheritdoc
+	 * Registers the module at the module manager.
+	 *
+	 * @since 3.0.0
+	 *
+	 * @param \Mlp_Module_Manager_Interface $module_manager Module manager object.
+	 * @param Container                     $container      Container object.
+	 *
+	 * @return bool Whether or not the module was registerd successfully AND was activated.
 	 */
-	public function provided_module() {
+	public function register_module( \Mlp_Module_Manager_Interface $module_manager, Container $container ) {
 
-		return self::MODULE;
-	}
-
-	/**
-	 * @inheritdoc
-	 */
-	public function register_module( \Mlp_Module_Manager $module_manager, Container $container ) {
-
-		return $module_manager->register(
-			[
-				'display_name' => __( 'Trasher', 'multilingual-press' ),
-				'slug'         => 'module-' . self::MODULE,
-				'description'  => __(
-					'This module provides a new post meta and checkbox to trash the posts. If you enable the checkbox and move a post to the trash MultilingualPress also will trash the linked posts.',
-					'multilingual-press'
-				),
-			]
-		);
+		return $module_manager->register( [
+			'description'  => __(
+				'This module provides a new post meta and checkbox to trash the posts. If you enable the checkbox and move a post to the trash MultilingualPress also will trash the linked posts.',
+				'multilingual-press'
+			),
+			'display_name' => __( 'Trasher', 'multilingual-press' ),
+			'slug'         => "module-{$this->module}",
+		] );
 	}
 }

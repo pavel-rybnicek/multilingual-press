@@ -2,84 +2,83 @@
 
 namespace Inpsyde\MultilingualPress\Core;
 
-use Inpsyde\MultilingualPress\Service\BootableServiceProvider;
+use Inpsyde\MultilingualPress\Service\BootstrappableServiceProvider;
 use Inpsyde\MultilingualPress\Service\Container;
 
 /**
- * Service provider for translation metabox.
+ * Service provider for Assets objects.
  *
- * TODO: this will removed when refactoring for version 3.0.0 is complete
- *
- * @package Inpsyde\MultilingualPress\Assets
+ * @package Inpsyde\MultilingualPress\Core
  * @since   3.0.0
  */
-final class TranslationMetaboxServiceProvider implements BootableServiceProvider {
+final class TranslationMetaboxServiceProvider implements BootstrappableServiceProvider {
 
 	/**
-	 * @inheritdoc
+	 * Registers the provided services on the given container.
+	 *
+	 * @since 3.0.0
+	 *
+	 * @param Container $container Container object.
 	 */
-	public function provide( Container $container ) {
+	public function register( Container $container ) {
 
-		$container['mlp.translation_metabox_post_types'] = function() {
-			$allowed_post_types = (array) apply_filters( 'mlp_allowed_post_types', [ 'post', 'page', ]);
+		$container['multilingualpress.post_types'] = function () {
 
-			return new \ArrayObject($allowed_post_types);
-
+			return new \ArrayObject( (array) apply_filters( 'mlp_allowed_post_types', [
+				'post',
+				'page',
+			] ) );
 		};
 
-		$container['mlp.translatable_post_data'] = function( Container $container ) {
+		$container['multilingualpress.translatable_post_data'] = function ( Container $container ) {
 
-			/** @var \ArrayObject $post_types */
-			$post_types = $container['mlp.translation_metabox_post_types'];
+			$post_types = $container['multilingualpress.post_types'];
 
 			return new \Mlp_Translatable_Post_Data(
 				$post_types->getArrayCopy(),
-				$GLOBALS[ 'wpdb' ]->base_prefix . 'multilingual_linked',
-				$container[ 'mlp.content_relations' ]
+				$GLOBALS['wpdb']->base_prefix . 'multilingual_linked',
+				$container['multilingualpress.content_relations']
 			);
 		};
 
-		$container['mlp.translation_metabox'] = function( Container $container ) {
+		$container['multilingualpress.translation_metabox'] = function ( Container $container ) {
 
-			/** @var \ArrayObject $post_types */
-			$post_types = $container['mlp.translation_metabox_post_types'];
+			$post_types = $container['multilingualpress.post_types'];
 
 			return new \Mlp_Translation_Metabox(
 				$post_types->getArrayCopy(),
-				$container['mlp.translatable_post_data'],
-				$container[ 'mlp.site_relations' ],
-				$container[ 'mlp.assets' ]
+				$container['multilingualpress.translatable_post_data'],
+				$container['multilingualpress.site_relations'],
+				$container['multilingualpress.assets']
 			);
 		};
 	}
 
 	/**
-	 * @inheritdoc
+	 * Bootstraps the registered services.
+	 *
+	 * @since 3.0.0
+	 *
+	 * @param Container $container Container object.
 	 */
-	public function boot( Container $container ) {
+	public function bootstrap( Container $container ) {
 
 		if ( ! is_admin() ) {
 			return;
 		}
 
-		$method = array_key_exists( 'REQUEST_METHOD', $_SERVER ) ? $_SERVER[ 'REQUEST_METHOD' ] : '';
-		if ( $method !== 'POST' ) {
-			return;
-		}
+		if ( isset( $_SERVER['REQUEST_METHOD'] ) && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
+			$translation_metabox = $container['multilingualpress.translation_metabox'];
 
-		add_action(
-			'inpsyde_mlp_loaded',
-			function() use ( $container ) {
+			$switcher = $container['multilingualpress.global_switcher_post'];
 
-				/** @var \Mlp_Translation_Metabox $translation_metabox */
-				$translation_metabox = $container['mlp.translation_metabox'];
+			add_action( 'inpsyde_mlp_loaded', function () use ( $translation_metabox, $switcher ) {
+
 				$translation_metabox->setup();
 
-				/** @var \Mlp_Global_Switcher $switcher */
-				$switcher = $container[ 'mlp.global_switcher_post' ];
 				add_action( 'mlp_before_post_synchronization', [ $switcher, 'strip' ] );
-				add_action( 'mlp_after_post_synchronization',  [ $switcher, 'fill' ] );
-			}
-		);
+				add_action( 'mlp_after_post_synchronization', [ $switcher, 'fill' ] );
+			} );
+		}
 	}
 }

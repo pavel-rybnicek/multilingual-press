@@ -76,7 +76,7 @@ class Mlp_Language_Updater {
 		$amount = $this->update_changed_items( $diff );
 
 		wp_safe_redirect( $this->get_url( $amount ) );
-		mlp_exit();
+		\Inpsyde\MultilingualPress\call_exit();
 	}
 
 	/**
@@ -89,7 +89,7 @@ class Mlp_Language_Updater {
 		check_admin_referer( $this->setting->action(), $this->setting->nonce_name() );
 
 		if ( empty ( $_POST[ 'languages' ] ) )
-			mlp_exit( 'invalid request' );
+			\Inpsyde\MultilingualPress\call_exit( 'invalid request' );
 
 		return (array) $_POST[ 'languages' ];
 	}

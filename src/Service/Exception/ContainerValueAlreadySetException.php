@@ -25,7 +25,7 @@ class ContainerValueAlreadySetException extends Exception {
 	public static function for_name( $name, $action = 'extend' ) {
 
 		return new static( sprintf(
-			"Cannot $2%s '$1%s'. There already is a value with this name.",
+			'Cannot %2$s "%1$s". There already is a value with this name.',
 			$name,
 			trim( $action )
 		) );

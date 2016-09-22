@@ -9,6 +9,15 @@
 interface Mlp_Module_Manager_Interface {
 
 	/**
+	 * Prefix for all module activation actions.
+	 *
+	 * @since 3.0.0
+	 *
+	 * @var string
+	 */
+	const MODULE_ACTIVATION_ACTION_PREFIX = 'multilingualpress.activated_module_';
+
+	/**
 	 * Constructor.
 	 *
 	 * @param string $option_name

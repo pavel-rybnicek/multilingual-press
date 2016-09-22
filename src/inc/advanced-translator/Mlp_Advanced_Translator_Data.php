@@ -144,7 +144,7 @@ class Mlp_Advanced_Translator_Data implements Mlp_Advanced_Translator_Data_Inter
 		do_action( 'mlp_before_post_synchronization', $this->save_context );
 
 		foreach ( $this->post_request_data[ $this->name_base ] as $remote_blog_id => $post_data ) {
-			if ( ! blog_exists( $remote_blog_id ) || ! in_array( $remote_blog_id, $related_blogs ) ) {
+			if ( ! \Inpsyde\MultilingualPress\blog_exists( $remote_blog_id ) || ! in_array( $remote_blog_id, $related_blogs ) ) {
 				continue;
 			}
 

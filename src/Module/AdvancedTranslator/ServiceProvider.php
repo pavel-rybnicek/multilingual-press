@@ -1,15 +1,15 @@
 <?php # -*- coding: utf-8 -*-
 
-namespace Inpsyde\MultilingualPress\Module\UserAdminLanguage;
+namespace Inpsyde\MultilingualPress\Module\AdvancedTranslator;
 
 use Inpsyde\MultilingualPress\Module\ActivationAwareness;
 use Inpsyde\MultilingualPress\Module\ModuleServiceProvider;
 use Inpsyde\MultilingualPress\Service\Container;
 
 /**
- * Service provider for the User Admin Language module.
+ * Service provider for the Advanced Translator module.
  *
- * @package Inpsyde\MultilingualPress\Module\UserAdminLanguage
+ * @package Inpsyde\MultilingualPress\Module\AdvancedTranslator
  * @since   3.0.0
  */
 final class ServiceProvider implements ModuleServiceProvider {
@@ -23,7 +23,7 @@ final class ServiceProvider implements ModuleServiceProvider {
 	 */
 	public function __construct() {
 
-		$this->module = 'user_admin_language';
+		$this->module = 'advanced_translator';
 	}
 
 	/**
@@ -35,9 +35,9 @@ final class ServiceProvider implements ModuleServiceProvider {
 	 */
 	public function register( Container $container ) {
 
-		$container['multilingualpress.module.user_admin_language'] = function () {
+		$container['multilingualpress.module.advanced_translator'] = function ( Container $container ) {
 
-			return new \Mlp_User_Backend_Language();
+			return new \Mlp_Advanced_Translator( $container['multilingualpress.site_relations'] );
 		};
 	}
 
@@ -50,19 +50,19 @@ final class ServiceProvider implements ModuleServiceProvider {
 	 */
 	public function bootstrap( Container $container ) {
 
-		if ( ! is_admin() ) {
-			return;
-		}
+		$translator = $container['multilingualpress.module.advanced_translator'];
 
-		$user_admin_language = $container['multilingualpress.module.user_admin_language'];
+		$this->on_activation( function () use ( $translator ) {
 
-		$this->on_activation( function () use ( $user_admin_language ) {
+			if ( defined( 'DOING_AJAX' ) && DOING_AJAX ) {
+				add_action( 'wp_ajax_' . \Mlp_Advanced_Translator::AJAX_ACTION, [ $translator, 'process_post_data' ] );
+			}
 
-			add_filter( 'locale', [ $user_admin_language, 'locale' ] );
-			add_filter( 'personal_options', [ $user_admin_language, 'edit_user_profile' ] );
-			add_filter( 'profile_update', [ $user_admin_language, 'profile_update' ] );
+			add_action( 'mlp_post_translator_init', [ $translator, 'setup' ] );
 
-			add_action( 'admin_head-options-general.php', [ $user_admin_language, 'enqueue_script' ] );
+			add_filter( 'mlp_external_save_method', '__return_true' );
+
+			add_action( 'mlp_translation_meta_box_registered', [ $translator, 'register_metabox_view_details' ], 10, 2 );
 		} );
 	}
 
@@ -80,10 +80,10 @@ final class ServiceProvider implements ModuleServiceProvider {
 
 		return $module_manager->register( [
 			'description'  => __(
-				'Let each user choose a preferred language for the backend of all connected sites. Does not affect the frontend.',
+				'Use the WYSIWYG editor to write all translations on one screen, including thumbnails and taxonomies.',
 				'multilingual-press'
 			),
-			'display_name' => __( 'User Backend Language', 'multilingual-press' ),
+			'display_name' => __( 'Advanced Translator', 'multilingual-press' ),
 			'slug'         => "module-{$this->module}",
 		] );
 	}

@@ -69,7 +69,7 @@ class Mlp_Trasher {
 		// remove filter to avoid recursion
 		remove_filter( current_filter(), [ $this, __FUNCTION__ ] );
 
-		$linked_posts = mlp_get_linked_elements( $post_id );
+		$linked_posts = \Inpsyde\MultilingualPress\get_linked_elements( $post_id );
 		foreach ( $linked_posts as $linked_blog => $linked_post ) {
 			switch_to_blog( $linked_blog );
 
@@ -123,7 +123,7 @@ class Mlp_Trasher {
 		}
 
 		// Get linked posts
-		$linked_posts = mlp_get_linked_elements( $post_id );
+		$linked_posts = \Inpsyde\MultilingualPress\get_linked_elements( $post_id );
 		foreach ( $linked_posts as $linked_blog => $linked_post ) {
 			switch_to_blog( $linked_blog );
 
